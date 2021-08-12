@@ -37,20 +37,25 @@ def usage(out):
     print("    - The last <window_size> years before <end year> are not ignored for the max ratio, but ",file=out)
     print("      they are at a disadvantage since the 'future' frequency is truncated.",file=out)
     print("",file=out)
+    print("  Output format: <concept1> [concept2] <first year> <max ratio year> <max ratio> <total freq>",file=out)
+    print("",file=out)
     print("  Options")
     print("    -h: print this help message.",file=out)
     print("    -j: joint frequency  instead of individual frequency",file=out)
     print("    -p: PTC <concept>@<type> format as input; ignore the type.",file=out)
-    print("    -d: details, add two column containing the sequence of raw fraquency and cumulated frequency.",file=out)
+    print("    -d: details, add two columns containing the sequence of raw fraquency and cumulated frequency.",file=out)
     print("    -m <min ratio>: keeps only concepts (or pairs) with a ratio at least equal to <min ratio> ",file=out)
     print("",file=out)
 
 
 def convert_year_map_to_array(m, start, end):
     a = [0] * (end-start+1)
+    first = None
     for y,f in m.items():
         a[y-start] = f
-    return a
+        if first is None or (y < first):
+            first = y
+    return (first, a)
 
 # main
 
@@ -99,8 +104,9 @@ with open(input_file) as infile:
         year = int(cols[col_year])
         if year >= start_year and year <= end_year:
             freq = int(cols[col_freq])
-            concepts = []
+            concept = None
             if ptc_format:
+                concepts = []
                 for i in cols_concept:
                     val = cols[i]
                     sep_pos = val.rfind(SEPARATOR_CONCEPT_ID_TYPE)
@@ -109,8 +115,8 @@ with open(input_file) as infile:
                         val = val[0:sep_pos]
                     else:
                         print("Warning: PTC format separator not found in '"+val+"'",file=sys.stderr)
-                        concepts.append(val)
-                        concept = '\t'.join(concepts)
+                    concepts.append(val)
+                concept = '\t'.join(concepts)
             else:
                 concept = '\t'.join([ cols[i] for i in cols_concept ])
             count_map[concept][year] += freq
@@ -118,7 +124,7 @@ with open(input_file) as infile:
 with open(output_file,"w") as outfile:
     for concept,map_by_year in count_map.items():
 #        print(map_by_year)
-        d = convert_year_map_to_array(map_by_year, start_year, end_year)
+        (first_year,d) = convert_year_map_to_array(map_by_year, start_year, end_year)
 #        print(d)
         # cumulated[i] = [ past, future, ratio ]
         cumulated = []
@@ -156,7 +162,7 @@ with open(output_file,"w") as outfile:
                 str_ratio = "NA"
             else:
                 str_ratio = str(ratio)
-            outfile.write("%s\t%s\t%s\t%d" % (concept, str_y, str_ratio, total))
+            outfile.write("%s\t%d\t%s\t%s\t%d" % (concept, first_year, str_y, str_ratio, total))
             if OUTPUT_DETAILS:
                 raw_freq_str = ' '.join([str(v) for v in d])
                 cumulated_freq_str = ' '.join([ str(c[0])+','+str(c[1]) for c in  cumulated ])
