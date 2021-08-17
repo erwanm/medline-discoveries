@@ -1,0 +1,212 @@
+---
+title: "Investigating Medline discoveries"
+author: "Erwan Moreau"
+date: "8/9/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+library(rmarkdown)
+library(ggplot2)
+source('discoveries.R')
+knitr::opts_chunk$set(echo = TRUE)
+dataPath <- '../data/21-extract-discoveries'
+```
+
+# Global statistics across years
+
+## Total number of documents by year
+
+```{r}
+total <- loadTotalFiles(dataPath)
+total<-total[total$year>=1950,]
+ggplot(total,aes(year,nb))+geom_col()+facet_grid(source~.)
+```
+
+
+## Abstracts vs. Title only (KD)
+
+The following code can be used to generate the simplified table by year from the large table containing all the Medline entries. Running this code requires a large amount of memory.
+
+```
+d <-read.table('kd-count-tokens-medline.tsv',sep='\t')
+dd<-ddply(d,'year',function(s) { data.frame(abtract=c("no","yes"),count=c(nrow(s[!s$has_abstract,]),nrow(s[s$has_abstract,])),tokens=c(sum(s[,'title']),sum(s[,'abstract']))) })
+write.table(dd,'kd-count-tokens-medline-by-year.tsv',row.names=FALSE,quote=FALSE,sep='\t')
+```
+
+```{r}
+kdByYear <-read.table(paste(dataPath,'kd-count-tokens-medline-by-year.tsv',sep='/'),sep='\t',header=TRUE)
+```
+
+
+```{r}
+ggplot(kdByYear[kdByYear$year>=1950,],aes(year,count,fill=abtract))+geom_col()
+```
+
+The proportion of entries in Medline with abstracts (as opposed to without abstract, i.e. only title) changes drastically between 1974 and 1975:
+
+```{r}
+kable(kdByYear[kdByYear$year>1970 & kdByYear$year<1980,])
+```
+
+## Number of tokens by year (KD)
+
+```{r}
+ggplot(kdByYear[kdByYear$year>=1950,],aes(year,tokens))+geom_col()
+```
+
+## Number of sentences by year
+
+```{r}
+sent<-loadTotalFiles(dataPath,by='by-sent')
+ggplot(sent[sent$year>=1950,],aes(year,nb))+geom_col()+facet_grid(source~.)
+```
+
+The proportion of entries in Medline with abstracts (as opposed to without abstract, i.e. only title) triples between 1974 and 1975:
+
+
+```{r}
+kable(sent[sent$year>1970 & sent$year<1980,])
+```
+
+# Discovery year
+
+## Number of concepts/pairs by group and proportion of NA cases
+
+```{r}
+d <- loadAllDiscoveriesFiles(dataPath)
+```
+
+```{r}
+kable(statsByGroup(d))
+```
+
+## Distribution of ratio values
+
+Note: the Y count is not correct in the following graphs since a random subset of the data is used. 
+
+```{r}
+d0 <- d[sample(nrow(d),200000),]
+```
+
+```{r}
+plotDistribRatio(d0)
+plotDistribRatio(d0,100)
+q<-ddply(d,c('source','indivOrJoint','window_size'),function(s) {
+  quantile(s$ratio,probs=seq(0,1,.1),na.rm=TRUE)
+})
+kable(q)
+```
+
+# Relation between frequency and ratio
+
+```{r}
+ggplot(d0,aes(freq,ratio))+geom_point()
+ggplot(d0[d0$freq<10000 & d0$ratio<100,],aes(freq,ratio))+geom_point()
+```
+
+Correlation:
+
+```{r}
+cor(d$ratio, d$freq,use="complete.obs")
+```
+
+# Discovery years
+
+## Distribution of discovery years 
+
+```{r}
+plotDistribDiscoveryYears(d0,'year',byGroup=FALSE)
+plotDistribDiscoveryYears(d0,'year')
+```
+
+The peak in the 70s is very likely caused by a large amount of new concepts added around this time, as can be seen on the distribution of the first year:
+
+```{r}
+plotDistribDiscoveryYears(d0,'first_year')
+```
+
+Hypothesis: the progressive decrease in amount of discoveries after the 90s might be due to the fact that the probability of a peak decreases with time.
+
+## Relation between first year and discovery year
+
+```{r}
+plotDiffFirstYear(d)
+plotDiffFirstYear(d,log=TRUE)
+```
+
+Proportion of cases where the difference between discovery and first year is less than the window size:
+
+```{r}
+kable(proportionDiffLowerWindowByGroup(d))
+```
+
+Note: for joint discoveries the proportion of "discovery year" in the first year within the window size is very high:
+
+- around 43% with window size 5
+- around 70% with window size 10
+
+# Study considering first year of both individual concepts in joint relation
+
+Idea: study whether the two individual concepts appeared (first year) before or after the year of discovery minus window size: if yes, then the 'past' frequency can be considered meaningful, but if not it could be an artifact of the method.
+
+```{r}
+j<-addIndivInfoToJoint(d)
+```
+
+Proportion of cases where the difference between discovery and latest first indiv year (i.e. first year where both individual concepts exist) is less than the window size:
+
+
+```{r}
+proportionDiffLowerWindowByGroupJoint(j)
+```
+
+This is the distribution of 'diff year' i.e. time between the first joint occurrence and discovery year, with the label/colour being:
+
+- 'no': the discovery year is at least N years after first occurrence (with N the window size)
+- 'joint_first' the discovery year is within the first N years after the first joint occurrence
+- 'indiv_first' the discovery year is within the first N years after the first occurrence of the last individual occurrence 
+    - I.e. if A appears in 1954 and B appears in 1967 then B is the last; if the discovery year for the relation A-B is within 1967+N then the case belongs to the 'indiv_first' category.
+    - Note: the 'indiv first' cases are a subset of the 'joint first' cases since the last individual occurrence always happens before (or the same year as) the first joint occurrence.
+
+```{r}
+j <-addWindowLabel(j)
+j<-addRatioBins(j)
+plotDiffFirstYear(j,colourCol='firstYearsWithinWindow')
+```
+
+This is the distribution of 'diff year within window' which is actually the duration between the first occurrence of the last individual occurrence and the discovery year.
+
+Note that the data follows a more symmetrical distribution. Not sure how to interpret this?
+
+```{r}
+plotDiffFirstYear(j,col='diff_both_indiv',colourCol='firstYearsWithinWindow')
+```
+
+# Relation between ratio and year/year diff 
+
+As suspected, the highest max ratios are observed within the first N years of the window. This tends to show that there is a bias for these cases, especially the 'indiv first' cases.
+
+```{r}
+ggplot(j[j$diff<=15,],aes(as.factor(diff),ratio,colour=firstYearsWithinWindow))+geom_boxplot()+scale_y_log10()+facet_grid(source~window_size)
+```
+
+
+```{r}
+ggplot(j,aes(as.factor(diff_both_indiv),ratio))+geom_boxplot()+scale_y_log10()+facet_grid(source~window_size)
+```
+
+```{r}
+ggplot(j[j$diff_both_indiv<=30,],aes(as.factor(diff_both_indiv),ratio,colour=firstYearsWithinWindow))+geom_boxplot()+scale_y_log10()+facet_grid(source~window_size)
+```
+
+## By discovery year
+
+```{r}
+ggplot(j,aes(as.factor(year),ratio))+geom_boxplot()+scale_y_log10()+theme(axis.text.x = element_text(angle = 90))+facet_grid(source~window_size)
+```
+
+```{r}
+plotDiffFirstYear(j,col='year',colourCol='ratio_bin')
+```
