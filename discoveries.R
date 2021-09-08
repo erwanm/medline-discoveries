@@ -17,7 +17,7 @@ loadTotalFiles <- function(dataPath='data/21-extract-discoveries', by='by-doc') 
 
 loadDiscoveriesFile <- function(dataPath='data/21-extract-discoveries',f='full.min100/joint/KD.05.stats') {
   f <- paste(dataPath,f,sep='/')
-#  print(f)
+  print(f)
   d<-read.table(f,sep='\t',quote='',comment.char = '')
   if (ncol(d)==5) {
     colnames(d)<-c('concept','first_year','year','ratio','freq')
@@ -25,7 +25,11 @@ loadDiscoveriesFile <- function(dataPath='data/21-extract-discoveries',f='full.m
     if (ncol(d) == 6) {
       colnames(d)<-c('c1','c2','first_year','year','ratio','freq')
     } else {
-      stop(paste("Error: unexpected number of columns in ",f,":",ncol(d)))
+      if (ncol(d) == 8) {
+        colnames(d)<-c('c1','c2','first_year','year','ratio','freq', 'raw_freq_by_year', 'past_future_sum_by_year')
+      } else {
+        stop(paste("Error: unexpected number of columns in ",f,":",ncol(d)))
+      }
     }
   }
   d
@@ -37,7 +41,7 @@ loadAllDiscoveriesFiles <- function(dataPath='data/21-extract-discoveries', dir=
       ldply(windowSizes, function(windowSize) {
         f <- paste0(source,'.',windowSize,suffix)
         path <- paste(dir,t,f,sep='/')
-        print(path)
+#        print(path)
         data <- loadDiscoveriesFile(dataPath,path)
         data$source <- rep(source,nrow(data))
         data$indivOrJoint <- rep(t,nrow(data))
@@ -148,4 +152,26 @@ addWindowLabel <- function(d) {
 addRatioBins <- function(d,bins=c(0,2,3,5,10,100,99999)) {
   d$ratio_bin <- cut(d$ratio,bins)
   d
+}
+
+# filter a subset of concepts
+# df<-loadAllDiscoveriesFiles(dataPath='data/21-extract-discoveries/', dir='ND.min100',types='joint',suffix='')
+#
+filterConceptFromJoint <- function(df, cui='C0002736', mesh='MESH:D000690') {
+  rbind(df[df$source == 'KD' & (df$c1 %in% cui | df$c2 %in% cui),],
+        df[df$source == 'PTC' & (df$c1 %in% mesh | df$c2 %in% mesh),])
+}
+
+# nd <- filterConceptFromJoint(df)
+# row <- nd[sample(1:nrow(nd),1),]
+plotRawFreq <- function(row, yearRange=1950:2020) {
+  info <- row[,c('c1','c2','freq','first_year','year','ratio','source','window_size','diff')]
+  print(info)
+  rawfreq <- as.numeric(strsplit(row$raw_freq_by_year, ' ',fixed = TRUE)[[1]])
+#  print(rawfreq)
+  rawFreqDF <- data.frame(year=yearRange,freq=rawfreq)
+  rawFreqDF$window <- 'out'
+  rawFreqDF[rawFreqDF$year<info$year & rawFreqDF$year>=info$year-info$window_size,]$window <- "before"
+  rawFreqDF[rawFreqDF$year>=info$year & rawFreqDF$year<info$year+info$window_size,]$window <- "after"
+  ggplot(rawFreqDF,aes(year,freq,fill=window))+geom_col()
 }
