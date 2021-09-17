@@ -1,0 +1,56 @@
+---
+title: "Detecting Discovery Surges"
+author: "Erwan Moreau"
+date: "9/16/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(rmarkdown)
+library(ggplot2)
+source('discoveries2.R')
+knitr::opts_chunk$set(echo = TRUE)
+dataPath <- '../data/21-extract-discoveries'
+dirALS <- paste(dataPath,"ALS.min100",sep='/')
+N <- 5
+```
+
+```{r loading}
+indiv <- loadRawData(dir=dirALS, indivOrJoint = 'indiv')
+joint <- loadRawData(dir=dirALS, indivOrJoint = 'joint')
+totals <- loadTotalFiles(dataPath=dataPath)
+```
+
+```{r func}
+  repeatShowExample <- function(sourceDF) {
+    for (i in 1:N) {
+      print(paste("************ CASE ",i))
+      x <- pickRandom(sourceDF)
+      aggreg_x<-applyAggregMethods(x,totals,idCols=c('source','c1','c2'))
+      res_x <- computeSurgeIndicators(aggreg_x)
+      print(plotRawByYear(res_x))
+      print(plotMAByYear(res_x))
+      print(plotTrendByYear(res_x[res_x$aggreg.method=='ma',]))
+      print(plotPVNByYear(res_x))
+      print(plotTrendByYear(res_x[res_x$aggreg.method=='pvn',]))
+    }
+  }
+```
+
+# KD data
+
+```{r KD}
+repeatShowExample(joint[joint$source=='KD',])
+```
+
+# PTC data
+
+```{r PTC}
+repeatShowExample(joint[joint$source=='PTC',])
+```
+
+# MED data
+
+```{r MED}
+repeatShowExample(joint[joint$source=='MED',])
+```

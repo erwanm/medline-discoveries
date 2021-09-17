@@ -3,29 +3,42 @@ library(reshape2)
 library(plyr)
 
 # CAUTION: for PTC there can be several rows for the same year and concept(s) due to removal of PTC type
-loadRawData <- function(dir='data/21-extract-discoveries/ND.min100',indivOrJoint='indiv',sources=c('KD','PTC'), removePTCTypes=TRUE, minYear=1950,maxYear=2020) {
+loadRawData <- function(dir='data/21-extract-discoveries/ALS.min100',indivOrJoint='indiv',sources=c('KD','PTC','MED'), removePTCTypes=TRUE, addMeshPrefixMED=TRUE, minYear=1950,maxYear=2020, debugPath=FALSE) {
   ldply(sources, function(source) {
-    f <- paste(dir,indivOrJoint,source,sep='/')
-    print(f)
-    d<-read.table(f,sep='\t',quote='',comment.char = '')
-    d$source <- rep(source,nrow(d))
-    d <- if (indivOrJoint == 'indiv') {
-      colnames(d)[1:3] <- c('year', 'concept', 'freq')
-      d[,c('year', 'concept', 'freq','source')]
+    f <- paste(dir,paste(source,indivOrJoint,sep='.'),sep='/')
+    if (debugPath) {
+      f
     } else {
-      colnames(d)[1:4] <- c('year', 'c1', 'c2', 'freq')
-      d
-    }
-    if (source == 'PTC' & removePTCTypes) {
-      if (indivOrJoint == 'indiv') {
-        d<-removeTypePTC(d, 'concept')
+      d<-read.table(f,sep='\t',quote='',comment.char = '')
+      d$source <- rep(source,nrow(d))
+      d <- if (indivOrJoint == 'indiv') {
+        colnames(d)[1:3] <- c('year', 'concept', 'freq')
+        d[,c('year', 'concept', 'freq','source')]
       } else {
-        if (indivOrJoint == 'joint') {
-          d<-removeTypePTC(d)
+        colnames(d)[1:4] <- c('year', 'c1', 'c2', 'freq')
+        d
+      }
+      if (source == 'PTC' & removePTCTypes) {
+        if (indivOrJoint == 'indiv') {
+          d<-removeTypePTC(d, 'concept')
+        } else {
+          if (indivOrJoint == 'joint') {
+            d<-removeTypePTC(d)
+          }
         }
       }
+      if (source=='MED' & addMeshPrefixMED) {
+        if (indivOrJoint == 'indiv') {
+          d$concept <- paste0('MESH:',d$concept)
+        } else {
+          if (indivOrJoint == 'joint') {
+            d$c1 <- paste0('MESH:',d$c1)
+            d$c2 <- paste0('MESH:',d$c2)
+          }
+        }
+      }
+      d[d$year>=minYear & d$year<=maxYear,]
     }
-    d[d$year>=minYear & d$year<=maxYear,]
   })
 }
 
@@ -54,9 +67,12 @@ loadTotalFiles <- function(dataPath='data/21-extract-discoveries', by='by-doc', 
   kd<-read.table(f,sep='\t')
   f <- paste(dataPath,'totals',by,'PTC',sep='/')
   ptc<-read.table(f,sep='\t')
+  f <- paste(dataPath,'totals',by,'MED',sep='/')
+  med<-read.table(f,sep='\t')
   kd$source <- rep('KD',nrow(kd))
   ptc$source <- rep('PTC',nrow(ptc))
-  d<-rbind(kd,ptc)
+  med$source <- rep('MED',nrow(med))
+  d<-rbind(kd,ptc,med)
   colnames(d) <- c('year', 'unique_concepts','nb','concepts_mentions','source')
   d[d$year>=minYear & d$year<=maxYear,filterCols]
 }
@@ -242,7 +258,111 @@ applyAggregMethods <- function(freqDF, totalsDF, idCols=c('source','concept'), h
         resDF$prev.mean.total <- selectedTotalSeries$prev.mean
         resDF$next.mean.total <- selectedTotalSeries$next.mean
       }
+      resDF$half_window <- rep(half_window, nrow(resDF))
       resDF
     })
+  },.progress = "text")
+}
+
+calculateIndicators <- function(aggregDF, probRate, probDiff, freqDiff, indicators=c('prob.rate','prob.diff','product.log','product')) {
+  ldply(indicators, function(indicator) {
+    resDF <- aggregDF
+    if (indicator=='prob.rate') {
+      resDF$trend <- probRate
+    } else {
+      if (indicator=='prob.diff') {
+        resDF$trend <- probDiff
+      } else {
+        if (indicator=='product.log') {
+          resDF$trend <- rep(NA, nrow(resDF))
+          regularCase <- !is.na(freqDiff) & freqDiff > 0
+          resDF[regularCase,]$trend <- probRate[regularCase] * log2(freqDiff[regularCase])
+        } else {
+          if (indicator=='product') {
+            resDF$trend <- probDiff * probRate
+            if (probDiff<0 & probRate <0) {
+              resDF$trend <- - resDF$trend
+            }
+          } else {
+            stop(paste('Error: invalid indicator id',indicator))
+          }
+        }
+      }
+    }
+    resDF$indicator <- rep(indicator,nrow(resDF))
+    resDF
   })
+}
+
+# aggregDF <- applyAggregMethods(...)
+computeSurgeIndicators <- function(aggregDF,indicators=c('prob.rate','prob.diff','product.log','product')) {
+  minYear <- min(aggregDF$year)
+#  resDF <- data.frame()
+  maDF <- if ('ma' %in% colnames(aggregDF)) {
+    maAsProb <- aggregDF$ma/aggregDF$ma.total
+    maPrevValues <- head(maAsProb,-1) # remove last
+    maNextValues <- tail(maAsProb,-1) # remove first
+    probRate <- (maNextValues-maPrevValues) / maPrevValues
+    probRate <- c(NA, probRate)
+    probDiff <- maNextValues-maPrevValues
+    probDiff <- c(NA, probDiff)
+    maPrevFreq <- head(aggregDF$ma,-1) # remove last
+    maNextFreq <- tail(aggregDF$ma,-1) # remove first
+    freqDiff <- c(NA, maNextFreq-maPrevFreq)
+    maDF <- calculateIndicators(aggregDF, probRate, probDiff, freqDiff, indicators)
+    maDF$aggreg.method <- rep('ma',nrow(maDF))
+    maDF
+  }
+  pvnDF <- if ('prev.mean' %in% colnames(aggregDF)) {
+    prevAsProb <- aggregDF$prev.mean / aggregDF$prev.mean.total
+    nextAsProb <- aggregDF$next.mean / aggregDF$next.mean.total
+    probRate <- (nextAsProb-prevAsProb) / prevAsProb
+    probDiff <- nextAsProb-prevAsProb
+    freqDiff <- aggregDF$next.mean-aggregDF$prev.mean
+    pvnDF <- calculateIndicators(aggregDF, probRate, probDiff, freqDiff, indicators)
+    pvnDF$aggreg.method <- rep('pvn',nrow(maDF))
+    pvnDF
+  }
+  rbind(maDF,pvnDF)
+}
+
+# from raw data:
+# df <- loadRawData(indivOrJoint = 'joint')
+filterConceptFromJoint <- function(df, cui='C0002736', mesh='MESH:D000690') {
+  rbind(df[df$source == 'KD' & (df$c1 %in% cui | df$c2 %in% cui),],
+        df[df$source == 'PTC' & (df$c1 %in% mesh | df$c2 %in% mesh),])
+}
+
+
+pickRandom <- function(df, idCols=c('source','c1','c2'), fastNotReallyRandom=FALSE) {
+  if (fastNotReallyRandom) {
+    selected <- df[sample(nrow(df),1),idCols]
+    
+  } else {
+    values <- unique(df[,idCols])
+    selected <- values[sample(length(values),1),idCols]
+  }
+  print(selected)
+  merge(selected,df)
+}
+
+# plot functions below for a single relation, e.g. picked by pickRandom
+
+plotTrendByYear <- function(df) {
+ ggplot(df, aes(year, trend)) + geom_col() + facet_grid(aggreg.method+indicator ~ half_window ,scales = "free") 
+}
+
+plotRawByYear <- function(df) {
+  raw <- unique(df[,c('year','freq')])
+  ggplot(raw,aes(year,freq))+geom_col()
+}
+
+plotMAByYear <- function(df) {
+  ggplot(df,aes(year,ma))+geom_col() + facet_grid(. ~ half_window ,scales = "free") 
+}
+
+plotPVNByYear <- function(df) {
+  pvn <- df[df$aggreg.method=='pvn' & df$indicator=='prob.rate',c('year','prev.mean','next.mean','half_window')]
+  d <- melt(pvn,id.vars=c('year','half_window'),variable.name='side',value.name='mean')
+  ggplot(d,aes(year,mean,fill=side))+geom_col(position='identity',alpha=.5) + facet_grid(. ~ half_window ,scales = "free") 
 }
