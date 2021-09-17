@@ -12,7 +12,7 @@ source('discoveries2.R')
 knitr::opts_chunk$set(echo = TRUE)
 dataPath <- '../data/21-extract-discoveries'
 dirALS <- paste(dataPath,"ALS.min100",sep='/')
-N <- 5
+N <- 10
 ```
 
 ```{r loading}
@@ -23,17 +23,19 @@ totals <- loadTotalFiles(dataPath=dataPath)
 
 ```{r func}
   repeatShowExample <- function(sourceDF) {
-    for (i in 1:N) {
-      print(paste("************ CASE ",i))
-      x <- pickRandom(sourceDF)
-      aggreg_x<-applyAggregMethods(x,totals,idCols=c('source','c1','c2'))
-      res_x <- computeSurgeIndicators(aggreg_x)
-      print(plotRawByYear(res_x))
-      print(plotMAByYear(res_x))
-      print(plotTrendByYear(res_x[res_x$aggreg.method=='ma',]))
-      print(plotPVNByYear(res_x))
-      print(plotTrendByYear(res_x[res_x$aggreg.method=='pvn',]))
-    }
+    x <- pickRandom(sourceDF,n=N)
+    aggreg_x<-applyAggregMethods(x,totals,idCols=c('source','c1','c2'))
+    res_x <- computeSurgeIndicators(aggreg_x)
+    dummy_res<-ddply(res_x, c('c1','c2'), function(s) {
+      print(paste("************ CASE "))
+      print(s[1,c('c1','c2')])
+      print(plotRawByYear(s))
+      print(plotMAByYear(s))
+      print(plotTrendByYear(s[s$aggreg.method=='ma',]))
+      print(plotPVNByYear(s))
+      print(plotTrendByYear(s[s$aggreg.method=='pvn',]))
+      data.frame("dummy result")
+    })
   }
 ```
 

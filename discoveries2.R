@@ -275,14 +275,14 @@ calculateIndicators <- function(aggregDF, probRate, probDiff, freqDiff, indicato
       } else {
         if (indicator=='product.log') {
           resDF$trend <- rep(NA, nrow(resDF))
-          regularCase <- !is.na(freqDiff) & freqDiff > 0
+          # note: freqDiff must be higher than 1 in order to prevent negative value
+          regularCase <- !is.na(freqDiff) & freqDiff > 1
           resDF[regularCase,]$trend <- probRate[regularCase] * log2(freqDiff[regularCase])
         } else {
           if (indicator=='product') {
             resDF$trend <- probDiff * probRate
-            if (probDiff<0 & probRate <0) {
-              resDF$trend <- - resDF$trend
-            }
+            negResult <- !is.na(probDiff) & !is.na(probRate) & probDiff<0 & probRate <0
+            resDF$trend[negResult] <- -1 * resDF$trend[negResult] 
           } else {
             stop(paste('Error: invalid indicator id',indicator))
           }
@@ -334,13 +334,13 @@ filterConceptFromJoint <- function(df, cui='C0002736', mesh='MESH:D000690') {
 }
 
 
-pickRandom <- function(df, idCols=c('source','c1','c2'), fastNotReallyRandom=FALSE) {
+pickRandom <- function(df, idCols=c('source','c1','c2'), n=1, fastNotReallyRandom=FALSE) {
   if (fastNotReallyRandom) {
-    selected <- df[sample(nrow(df),1),idCols]
+    selected <- df[sample(nrow(df),n),idCols]
     
   } else {
     values <- unique(df[,idCols])
-    selected <- values[sample(length(values),1),idCols]
+    selected <- values[sample(length(values),n),idCols]
   }
   print(selected)
   merge(selected,df)
