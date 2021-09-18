@@ -340,9 +340,11 @@ pickRandom <- function(df, idCols=c('source','c1','c2'), n=1, fastNotReallyRando
     
   } else {
     values <- unique(df[,idCols])
-    selected <- values[sample(length(values),n),idCols]
+    print(paste("Unique id cols = ",nrow(values)))
+    n <- min(nrow(values),n)
+    selected <- values[sample(nrow(values),n),idCols]
   }
-  print(selected)
+#  print(selected)
   merge(selected,df)
 }
 
@@ -358,7 +360,8 @@ plotRawByYear <- function(df) {
 }
 
 plotMAByYear <- function(df) {
-  ggplot(df,aes(year,ma))+geom_col() + facet_grid(. ~ half_window ,scales = "free") 
+  maDF <- unique(df[,c('year','ma','half_window')])
+  ggplot(maDF,aes(year,ma))+geom_col() + facet_grid(. ~ half_window ,scales = "free") 
 }
 
 plotPVNByYear <- function(df) {
