@@ -264,7 +264,7 @@ applyAggregMethods <- function(freqDF, totalsDF, idCols=c('source','concept'), h
   },.progress = "text")
 }
 
-calculateIndicators <- function(aggregDF, probRate, probDiff, freqDiff, indicators=c('prob.rate','prob.diff','product.log','product')) {
+calculateIndicators <- function(aggregDF, probRate, probDiff, freqDiff, indicators=c('prob.rate','prob.diff','product.log','product'),replaceNonFiniteWithNA=TRUE) {
   ldply(indicators, function(indicator) {
     resDF <- aggregDF
     if (indicator=='prob.rate') {
@@ -288,6 +288,9 @@ calculateIndicators <- function(aggregDF, probRate, probDiff, freqDiff, indicato
           }
         }
       }
+    }
+    if (replaceNonFiniteWithNA) {
+      resDF[!is.finite(resDF$trend),]$trend <- rep(NA, length(resDF$trend[!is.finite(resDF$trend)]))
     }
     resDF$indicator <- rep(indicator,nrow(resDF))
     resDF
@@ -368,4 +371,53 @@ plotPVNByYear <- function(df) {
   pvn <- df[df$aggreg.method=='pvn' & df$indicator=='prob.rate',c('year','prev.mean','next.mean','half_window')]
   d <- melt(pvn,id.vars=c('year','half_window'),variable.name='side',value.name='mean')
   ggplot(d,aes(year,mean,fill=side))+geom_col(position='identity',alpha=.5) + facet_grid(. ~ half_window ,scales = "free") 
+}
+
+
+calculateThresholdTopOutliers <- function(v0) {
+  v <- v0[!is.na(v0)]
+  if (length(v)>0) {
+    quartiles <- quantile(v,c(.25,.75))
+    iqr <- quartiles[2] - quartiles[1] # Q3-Q1
+    quartiles[2] + 1.5*iqr
+  } else {
+    NA
+  }
+}
+
+computeDiscoveryYear <- function(df, idCols=c('source','concept','half_window','indicator','aggreg.method'),discMethods=c('max.trend','earliest.outlier')) {
+  minYear <- min(df$year)
+  maxYear <- max(df$year)
+  ddply(df, idCols, function(singleCaseDF) {
+    if (nrow(singleCaseDF) != maxYear-minYear+1) {
+      stop(paste('Error: sanity check failed, expected',maxYear-minYear+1,'years for single case but found',nrow(singleCaseDF)))
+    }
+    ldply(discMethods, function(discMethod) {
+      if (discMethod == 'max.trend') {
+        m <- max(singleCaseDF$trend,na.rm = TRUE)
+        y <- singleCaseDF[!is.na(singleCaseDF$trend) & singleCaseDF$trend==m,'year']
+        cbind(singleCaseDF[1,idCols], data.frame(disc.year=y, disc.trend=m, disc.method=discMethod))
+      } else {
+        if (discMethod == 'earliest.outlier') {
+          t <- calculateThresholdTopOutliers(singleCaseDF$trend)
+          if (!is.na(t)) {
+            topOutliers <-singleCaseDF[!is.na(singleCaseDF$trend) & singleCaseDF$trend>=t,]
+            if (nrow(topOutliers)>0) {
+            minYearOutliers <- min(topOutliers$year) 
+            trend <- topOutliers[topOutliers$year==minYearOutliers,'trend']
+            } else {
+              minYearOutliers <- NA
+              trend <- NA
+            }
+          } else {
+            minYearOutliers <- NA
+            trend <- NA
+          }
+          cbind(singleCaseDF[1,idCols], data.frame(disc.year=minYearOutliers, disc.trend=trend, disc.method=discMethod))
+        } else {
+          stop(paste('Error: invalid discovery method id:',discMethod))
+        }
+      }
+    })    
+  })  
 }
