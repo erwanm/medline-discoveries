@@ -393,31 +393,63 @@ computeDiscoveryYear <- function(df, idCols=c('source','concept','half_window','
       stop(paste('Error: sanity check failed, expected',maxYear-minYear+1,'years for single case but found',nrow(singleCaseDF)))
     }
     ldply(discMethods, function(discMethod) {
-      if (discMethod == 'max.trend') {
-        m <- max(singleCaseDF$trend,na.rm = TRUE)
-        y <- singleCaseDF[!is.na(singleCaseDF$trend) & singleCaseDF$trend==m,'year']
-        cbind(singleCaseDF[1,idCols], data.frame(disc.year=y, disc.trend=m, disc.method=discMethod))
-      } else {
-        if (discMethod == 'earliest.outlier') {
-          t <- calculateThresholdTopOutliers(singleCaseDF$trend)
-          if (!is.na(t)) {
-            topOutliers <-singleCaseDF[!is.na(singleCaseDF$trend) & singleCaseDF$trend>=t,]
-            if (nrow(topOutliers)>0) {
-            minYearOutliers <- min(topOutliers$year) 
-            trend <- topOutliers[topOutliers$year==minYearOutliers,'trend']
-            } else {
-              minYearOutliers <- NA
-              trend <- NA
+      discTrend <- NA
+      discYear <- NA
+      if (nrow(singleCaseDF[!is.na(singleCaseDF$trend),]) > 0) {
+#        print(singleCaseDF[!is.na(singleCaseDF$trend),])
+        if (discMethod == 'max.trend') {
+          discTrend <- max(singleCaseDF$trend,na.rm = TRUE)
+          discYear <- singleCaseDF[!is.na(singleCaseDF$trend) & singleCaseDF$trend==discTrend,'year']
+        } else {
+          if (discMethod == 'earliest.outlier') {
+            t <- calculateThresholdTopOutliers(singleCaseDF$trend)
+            if (!is.na(t)) {
+              topOutliers <-singleCaseDF[!is.na(singleCaseDF$trend) & singleCaseDF$trend>=t,]
+              if (nrow(topOutliers)>0) {
+                discYear <- min(topOutliers$year) 
+                discTrend <- topOutliers[topOutliers[,'year']==discYear,'trend']
+              }
             }
           } else {
-            minYearOutliers <- NA
-            trend <- NA
+            stop(paste('Error: invalid discovery method id:',discMethod))
           }
-          cbind(singleCaseDF[1,idCols], data.frame(disc.year=minYearOutliers, disc.trend=trend, disc.method=discMethod))
-        } else {
-          stop(paste('Error: invalid discovery method id:',discMethod))
         }
       }
-    })    
+      data.frame(disc.year=discYear, disc.trend=discTrend, disc.method=discMethod)
+    })   
   })  
+#  }, .progress=TRUE)  # CAUSES BUG!!!
+}
+
+
+
+# this one gives an error
+computeDiscoveryYearBUG8 <- function(df, idCols=c('source','concept','half_window','indicator','aggreg.method'),discMethods=c('max.trend','earliest.outlier')) {
+  ddply(df, idCols, function(singleCaseDF) {
+    x <- singleCaseDF$trend
+    length(x)
+#  })  
+  }, .progress=TRUE)  
+}
+
+# this one doesn't give an error
+computeDiscoveryYearBUG9 <- function(df, idCols=c('source','concept','half_window','indicator','aggreg.method'),discMethods=c('max.trend','earliest.outlier')) {
+  ddply(df, idCols, function(singleCaseDF) {
+    x <- singleCaseDF$trend
+    length(x)
+#  })  
+  })  
+}
+
+
+groupOrder <- function(disc_res, groupCols=c('source','half_window','indicator','aggreg.method','disc.method'), writeToFilesPrefix=NULL) {
+  ddply(disc_res, groupCols, function(groupDF) {
+    res<-groupDF[order(-groupDF$disc.trend),]
+    if (!is.null(writeToFilesPrefix)) { 
+      id = paste(groupDF[1,groupCols], collapse='.')
+      name = paste(writeToFilesPrefix,id,'tsv',sep='.')
+      write.table(res, name, quote=FALSE,sep='\t', row.names=FALSE)
+    }
+    res
+  })
 }
