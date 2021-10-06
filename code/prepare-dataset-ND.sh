@@ -3,9 +3,9 @@
 #set -x
 
 minFreq=100
-optAddTerm=""
 topPMI=100
-
+optAddTerm=""
+optPTC=""
 
 function usage {
     echo
@@ -35,7 +35,8 @@ while getopts 'hpmf:t:' option ; do
     case $option in
         "h" ) usage
               exit 0;;
-	"p" ) optAddTerm="-M";;
+	"p" ) optAddTerm="-M"
+              optPTC="-p";;
 	"m" ) optAddTerm="-m";;
 	"f" ) minFreq="$OPTARG";;
 	"t" ) topPMI="$OPTARG";;
@@ -112,7 +113,7 @@ mv "$tmpBoth.term1.term2" "$noYearJoint.ND.top-pmi-npmi"
 rm -f $tmpBoth $tmpBoth.term1
 
 # 3. apply filter to "by year" data
-cut -f 1 "$noYearIndiv.ND" | filter-column.py "$indivFullFile" 2 >"$indivNDFile"
-cut -f 1,2 "$noYearJoint.ND" | filter-column.py "$jointFullFile" 2,3 >"$jointNDFile"
-cut -f 1,2 "$noYearJoint.ND.pos-pmi" | filter-column.py "$jointFullFile" 2,3 >"$jointNDFile.pos-pmi"
+cut -f 1 "$noYearIndiv.ND" | filter-column.py $optPTC "$indivFullFile" 2 >"$indivNDFile"
+cut -f 1,2 "$noYearJoint.ND" | filter-column.py $optPTC "$jointFullFile" 2,3 >"$jointNDFile"
+cut -f 1,2 "$noYearJoint.ND.pos-pmi" | filter-column.py $optPTC "$jointFullFile" 2,3 >"$jointNDFile.pos-pmi"
 
