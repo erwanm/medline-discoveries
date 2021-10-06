@@ -3,9 +3,9 @@ library(reshape2)
 library(plyr)
 
 # CAUTION: for PTC there can be several rows for the same year and concept(s) due to removal of PTC type
-loadRawData <- function(dir='data/21-extract-discoveries/ALS.min100',indivOrJoint='indiv',sources=c('KD','PTC','MED'), removePTCTypes=TRUE, addMeshPrefixMED=TRUE, minYear=1950,maxYear=2020, debugPath=FALSE) {
+loadRawData <- function(dir='data/21-extract-discoveries/',indivOrJoint='indiv',suffix='ND.min100',sources=c('KD','PTC','MED'), removePTCTypes=TRUE, addMeshPrefixMED=TRUE, minYear=1950,maxYear=2020, debugPath=FALSE) {
   ldply(sources, function(source) {
-    f <- paste(dir,paste(source,indivOrJoint,sep='.'),sep='/')
+    f <- paste(dir,source, paste(indivOrJoint,suffix,sep='.'),sep='/')
     if (debugPath) {
       f
     } else {
@@ -62,7 +62,17 @@ removeTypePTC <- function(d,cols=c('c1','c2')) {
 }
 
 
-loadTotalFiles <- function(dataPath='data/21-extract-discoveries', by='by-doc', minYear=1950,maxYear=2020, filterCols=c('source','year','nb')) {
+loadTotalFiles <- function(dataPath='data/21-extract-discoveries', sources=c('KD','MED','PTC'), minYear=1950,maxYear=2020, filterCols=c('source','year','nb')) {
+  ldply(sources, function(source) {
+    f <- paste(dataPath, source, 'indiv.full.total', sep='/')
+    df <- read.table(f,sep='\t')
+    colnames(df) <- c('year', 'unique_concepts','nb','concepts_mentions')
+    df$source <- rep(source,nrow(df))
+    df[df$year>=minYear & df$year<=maxYear,filterCols]
+  })
+}
+
+loadTotalFilesOLD <- function(dataPath='data/21-extract-discoveries', by='by-doc', minYear=1950,maxYear=2020, filterCols=c('source','year','nb')) {
   f <- paste(dataPath,'totals',by,'KD',sep='/')
   kd<-read.table(f,sep='\t')
   f <- paste(dataPath,'totals',by,'PTC',sep='/')
