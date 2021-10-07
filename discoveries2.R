@@ -421,3 +421,13 @@ computeDiscoveryYear <- function(df, idCols=c('source','concept','half_window','
     })    
   })  
 }
+
+
+# temporary first study with annotated data
+# aggJointDF <- read.table('21-extract-discoveries/recompute-with-ND-group/ND.agg-joint.top-pmi-npmi.tsv',sep='\t',quote='',header=TRUE)
+reformatAggregatedJointTopPMI <- function(aggJointDF,aggIndivDF,aggTotalDF) {
+  med <- aggJointDF[aggJointDF$source=='MED',]
+  colnames(med)[colnames(med)=='freq.x'] <- 'all.years.freq.joint'
+  colnames(med)[colnames(med)=='freq.y'] <- 'freq.joint'
+  med
+}
