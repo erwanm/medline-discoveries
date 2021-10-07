@@ -3,9 +3,9 @@ library(reshape2)
 library(plyr)
 
 # CAUTION: for PTC there can be several rows for the same year and concept(s) due to removal of PTC type
-loadRawData <- function(dir='data/21-extract-discoveries/ALS.min100',indivOrJoint='indiv',sources=c('KD','PTC','MED'), removePTCTypes=TRUE, addMeshPrefixMED=TRUE, minYear=1950,maxYear=2020, debugPath=FALSE) {
+loadRawData <- function(dir='data/21-extract-discoveries/',indivOrJoint='indiv',suffix='ND.min100',sources=c('KD','PTC','MED'), removePTCTypes=TRUE, addMeshPrefixMED=TRUE, minYear=1950,maxYear=2020, debugPath=FALSE) {
   ldply(sources, function(source) {
-    f <- paste(dir,paste(source,indivOrJoint,sep='.'),sep='/')
+    f <- paste(dir,source, paste(indivOrJoint,suffix,sep='.'),sep='/')
     if (debugPath) {
       f
     } else {
@@ -62,7 +62,17 @@ removeTypePTC <- function(d,cols=c('c1','c2')) {
 }
 
 
-loadTotalFiles <- function(dataPath='data/21-extract-discoveries', by='by-doc', minYear=1950,maxYear=2020, filterCols=c('source','year','nb')) {
+loadTotalFiles <- function(dataPath='data/21-extract-discoveries', sources=c('KD','MED','PTC'), minYear=1950,maxYear=2020, filterCols=c('source','year','nb')) {
+  ldply(sources, function(source) {
+    f <- paste(dataPath, source, 'indiv.full.total', sep='/')
+    df <- read.table(f,sep='\t')
+    colnames(df) <- c('year', 'unique_concepts','nb','concepts_mentions')
+    df$source <- rep(source,nrow(df))
+    df[df$year>=minYear & df$year<=maxYear,filterCols]
+  })
+}
+
+loadTotalFilesOLD <- function(dataPath='data/21-extract-discoveries', by='by-doc', minYear=1950,maxYear=2020, filterCols=c('source','year','nb')) {
   f <- paste(dataPath,'totals',by,'KD',sep='/')
   kd<-read.table(f,sep='\t')
   f <- paste(dataPath,'totals',by,'PTC',sep='/')
@@ -393,33 +403,65 @@ computeDiscoveryYear <- function(df, idCols=c('source','concept','half_window','
       stop(paste('Error: sanity check failed, expected',maxYear-minYear+1,'years for single case but found',nrow(singleCaseDF)))
     }
     ldply(discMethods, function(discMethod) {
-      if (discMethod == 'max.trend') {
-        m <- max(singleCaseDF$trend,na.rm = TRUE)
-        y <- singleCaseDF[!is.na(singleCaseDF$trend) & singleCaseDF$trend==m,'year']
-        cbind(singleCaseDF[1,idCols], data.frame(disc.year=y, disc.trend=m, disc.method=discMethod))
-      } else {
-        if (discMethod == 'earliest.outlier') {
-          t <- calculateThresholdTopOutliers(singleCaseDF$trend)
-          if (!is.na(t)) {
-            topOutliers <-singleCaseDF[!is.na(singleCaseDF$trend) & singleCaseDF$trend>=t,]
-            if (nrow(topOutliers)>0) {
-            minYearOutliers <- min(topOutliers$year) 
-            trend <- topOutliers[topOutliers$year==minYearOutliers,'trend']
-            } else {
-              minYearOutliers <- NA
-              trend <- NA
+      discTrend <- NA
+      discYear <- NA
+      if (nrow(singleCaseDF[!is.na(singleCaseDF$trend),]) > 0) {
+#        print(singleCaseDF[!is.na(singleCaseDF$trend),])
+        if (discMethod == 'max.trend') {
+          discTrend <- max(singleCaseDF$trend,na.rm = TRUE)
+          discYear <- singleCaseDF[!is.na(singleCaseDF$trend) & singleCaseDF$trend==discTrend,'year']
+        } else {
+          if (discMethod == 'earliest.outlier') {
+            t <- calculateThresholdTopOutliers(singleCaseDF$trend)
+            if (!is.na(t)) {
+              topOutliers <-singleCaseDF[!is.na(singleCaseDF$trend) & singleCaseDF$trend>=t,]
+              if (nrow(topOutliers)>0) {
+                discYear <- min(topOutliers$year) 
+                discTrend <- topOutliers[topOutliers[,'year']==discYear,'trend']
+              }
             }
           } else {
-            minYearOutliers <- NA
-            trend <- NA
+            stop(paste('Error: invalid discovery method id:',discMethod))
           }
-          cbind(singleCaseDF[1,idCols], data.frame(disc.year=minYearOutliers, disc.trend=trend, disc.method=discMethod))
-        } else {
-          stop(paste('Error: invalid discovery method id:',discMethod))
         }
       }
-    })    
+      data.frame(disc.year=discYear, disc.trend=discTrend, disc.method=discMethod)
+    })   
   })  
+#  }, .progress=TRUE)  # CAUSES BUG!!!
+}
+
+
+
+# this one gives an error
+computeDiscoveryYearBUG8 <- function(df, idCols=c('source','concept','half_window','indicator','aggreg.method'),discMethods=c('max.trend','earliest.outlier')) {
+  ddply(df, idCols, function(singleCaseDF) {
+    x <- singleCaseDF$trend
+    length(x)
+#  })  
+  }, .progress=TRUE)  
+}
+
+# this one doesn't give an error
+computeDiscoveryYearBUG9 <- function(df, idCols=c('source','concept','half_window','indicator','aggreg.method'),discMethods=c('max.trend','earliest.outlier')) {
+  ddply(df, idCols, function(singleCaseDF) {
+    x <- singleCaseDF$trend
+    length(x)
+#  })  
+  })  
+}
+
+
+groupOrder <- function(disc_res, groupCols=c('source','half_window','indicator','aggreg.method','disc.method'), writeToFilesPrefix=NULL) {
+  ddply(disc_res, groupCols, function(groupDF) {
+    res<-groupDF[order(-groupDF$disc.trend),]
+    if (!is.null(writeToFilesPrefix)) { 
+      id = paste(groupDF[1,groupCols], collapse='.')
+      name = paste(writeToFilesPrefix,id,'tsv',sep='.')
+      write.table(res, name, quote=FALSE,sep='\t', row.names=FALSE)
+    }
+    res
+  })
 }
 
 
