@@ -1,6 +1,18 @@
 library(ggplot2)
 library(reshape2)
 library(plyr)
+library(rpart)
+library(rpart.plot)
+library(cowplot)
+library(lsa)
+
+mesh.ALS <- 'MESH:D000690'
+mesh.FTD <- 'MESH:D057180'
+mesh.adult <- 'MESH:D000328'
+mesh.elderly <- 'MESH:D000368'
+mesh.brain <- 'MESH:D001921'
+
+subsetForC9ORF72Study <- c(mesh.ALS,mesh.FTD,mesh.adult,mesh.elderly,mesh.brain)
 
 # CAUTION: for PTC there can be several rows for the same year and concept(s) due to removal of PTC type
 loadRawData <- function(dir='data/21-extract-discoveries/',indivOrJoint='indiv',suffix='ND.min100',sources=c('KD','PTC','MED'), removePTCTypes=TRUE, addMeshPrefixMED=TRUE, minYear=1950,maxYear=2020, debugPath=FALSE) {
@@ -395,12 +407,15 @@ calculateThresholdTopOutliers <- function(v0) {
   }
 }
 
-computeDiscoveryYear <- function(df, idCols=c('source','concept','half_window','indicator','aggreg.method'),discMethods=c('max.trend','earliest.outlier')) {
+computeDiscoveryYear <- function(df, idCols=c('source','concept','half_window','indicator','aggreg.method'),discMethods=c('max.trend','earliest.outlier'), discardNonFiniteTrendValues=TRUE) {
   minYear <- min(df$year)
   maxYear <- max(df$year)
   ddply(df, idCols, function(singleCaseDF) {
     if (nrow(singleCaseDF) != maxYear-minYear+1) {
       stop(paste('Error: sanity check failed, expected',maxYear-minYear+1,'years for single case but found',nrow(singleCaseDF)))
+    }
+    if (discardNonFiniteTrendValues) {
+      singleCaseDF <- singleCaseDF[is.finite(singleCaseDF$trend),]
     }
     ldply(discMethods, function(discMethod) {
       discTrend <- NA
@@ -433,23 +448,6 @@ computeDiscoveryYear <- function(df, idCols=c('source','concept','half_window','
 
 
 
-# this one gives an error
-computeDiscoveryYearBUG8 <- function(df, idCols=c('source','concept','half_window','indicator','aggreg.method'),discMethods=c('max.trend','earliest.outlier')) {
-  ddply(df, idCols, function(singleCaseDF) {
-    x <- singleCaseDF$trend
-    length(x)
-#  })  
-  }, .progress=TRUE)  
-}
-
-# this one doesn't give an error
-computeDiscoveryYearBUG9 <- function(df, idCols=c('source','concept','half_window','indicator','aggreg.method'),discMethods=c('max.trend','earliest.outlier')) {
-  ddply(df, idCols, function(singleCaseDF) {
-    x <- singleCaseDF$trend
-    length(x)
-#  })  
-  })  
-}
 
 
 groupOrder <- function(disc_res, groupCols=c('source','half_window','indicator','aggreg.method','disc.method'), writeToFilesPrefix=NULL) {
@@ -467,9 +465,536 @@ groupOrder <- function(disc_res, groupCols=c('source','half_window','indicator',
 
 # temporary first study with annotated data
 # aggJointDF <- read.table('21-extract-discoveries/recompute-with-ND-group/ND.agg-joint.top-pmi-npmi.tsv',sep='\t',quote='',header=TRUE)
-reformatAggregatedJointTopPMI <- function(aggJointDF,aggIndivDF,aggTotalDF) {
-  med <- aggJointDF[aggJointDF$source=='MED',]
-  colnames(med)[colnames(med)=='freq.x'] <- 'all.years.freq.joint'
-  colnames(med)[colnames(med)=='freq.y'] <- 'freq.joint'
-  med
+reformatAggregatedJointTopPMI <- function(aggJointDF,aggIndivDF,discDF=NULL,joint_cols=c('c1','c2','all.years.freq.joint','freq.joint','status','year','ma.joint'),indiv_cols=c('concept','year','freq','ma','ma.total'),withNames=FALSE) {
+  topJointMed <- aggJointDF[aggJointDF$source=='MED',]
+  colnames(topJointMed)[colnames(topJointMed)=='freq.x'] <- 'all.years.freq.joint'
+  colnames(topJointMed)[colnames(topJointMed)=='freq.y'] <- 'freq.joint'
+  colnames(topJointMed)[colnames(topJointMed)=='ma'] <- 'ma.joint'
+#  colnames(topJointMed)[colnames(topJointMed)=='ma.total'] <- 'ma.total.joint'
+  topJointMed[,'ma.total'] <- NULL
+  topJointMed[,'NA.'] <- NULL
+  if (withNames) {
+    joint_cols <- c(joint_cols, 'term1','group1','term2', 'group2')
+  }
+  topJointMed <- topJointMed[,joint_cols]
+  fullIndivMed <- aggIndivDF[aggIndivDF$source=='MED',]
+  fullIndivMed <- fullIndivMed[,indiv_cols]
+  joint1 <- merge(topJointMed,fullIndivMed,by.x=c('year','c1'),by.y=c('year','concept'))
+  colnames(joint1)[colnames(joint1)=='freq'] <- 'freq.c1'
+  colnames(joint1)[colnames(joint1)=='ma'] <- 'ma.c1'
+  joint1[,'ma.total'] <- NULL # removing because ma.total is the same for c1 and c2
+  res <- merge(joint1,fullIndivMed,by.x=c('year','c2'),by.y=c('year','concept'))
+  colnames(res)[colnames(res)=='freq'] <- 'freq.c2'
+  colnames(res)[colnames(res)=='ma'] <- 'ma.c2'
+  if (!is.null(discDF)) {
+    disc0 <- discDF[discDF$source=='MED',c('c1','c2','indicator','disc.year','disc.trend')]
+    disc0$disc.prev.year <- disc0$disc.year-1
+    res1 <- merge(res, disc0,by.x=c('c1','c2','year'),by.y=c('c1','c2','disc.prev.year'))
+    res1$position <- rep(1,nrow(res1))
+    res1$disc.year <- NULL
+    res2 <- merge(res, disc0,by.x=c('c1','c2','year'),by.y=c('c1','c2','disc.year'))
+    res2$position <- rep(2,nrow(res2))
+    res2$disc.prev.year <- NULL
+    res <- rbind(res1,res2)
+    res$ma.c1Gc2 <- res$ma.joint / res$ma.c2
+    res$ma.c2Gc1 <- res$ma.joint / res$ma.c1
+    res$diffCondi <- abs(res$ma.c1Gc2 - res$ma.c2Gc1)
+  }
+  res  
+}
+
+study1 <- function(x, bins=4) {
+  y <- x[,c('c1','c2',"status",'position','indicator','ma.c1Gc2',"ma.c2Gc1",'ma.c1','ma.c2')]
+  y <- ddply(y, c('c1','c2','indicator','status'), function(s) {
+    if (nrow(s)!=2) {
+      print(s)
+      stop("bug")
+    }
+    s1 <- s[s$position==1,]
+    s2 <- s[s$position==2,]
+    data.frame(prev.c1Gc2=s1$ma.c1Gc2, prev.c2Gc1=s1$ma.c2Gc1,next.c1Gc2=s2$ma.c1Gc2, next.c2Gc1=s2$ma.c2Gc1,
+               prev.c1=s1$ma.c1,prev.c2=s1$ma.c2,next.c1=s2$ma.c1,next.c2=s2$ma.c2)
+  })
+  if (bins>0) {
+    b <- seq(0,1,1/bins)
+    y$bin.prev.c1Gc2 <- cut(y$prev.c1Gc2, b)
+    y$bin.prev.c2Gc1 <- cut(y$prev.c2Gc1, b)
+    y$bin.next.c1Gc2 <- cut(y$next.c1Gc2, b)
+    y$bin.next.c2Gc1 <- cut(y$next.c2Gc1, b)
+    y$concat <- paste(y$bin.prev.c1Gc2, y$bin.prev.c2Gc1, y$bin.next.c1Gc2, y$bin.next.c2Gc1)
+  }
+  y
+}
+
+# not really CV
+study2 <- function(study1DF,returnDF=FALSE, includeCondi=TRUE, includeStatsTime=FALSE, includeStatsPairConcepts=FALSE,cv=FALSE) {
+  x <- study1DF[study1DF$status!='unclear',c('prev.c1Gc2', 'prev.c2Gc1','next.c1Gc2', 'next.c2Gc1','status')]
+  cols <- c('status')
+  x$prevMin <- pmin(x$prev.c1Gc2, x$prev.c2Gc1)
+  x$prevMax <- pmax(x$prev.c1Gc2, x$prev.c2Gc1)
+  x$nextMin <- pmin(x$next.c1Gc2, x$next.c2Gc1)
+  x$nextMax <- pmax(x$next.c1Gc2, x$next.c2Gc1)
+  if (includeCondi) {
+      cols <- c(cols, 'prevMin', 'prevMax', 'nextMin','nextMax')
+  }
+  if (includeStatsTime) {
+    x$diffMinPrevNext <- x$nextMin - x$prevMin
+    x$ratioMinPrevNext <- x$nextMin / x$prevMin
+    x$diffMaxPrevNext <- x$nextMax - x$prevMax
+    x$ratioMaxPrevNext <- x$nextMax / x$prevMax
+    cols <- c(cols, 'diffMinPrevNext', 'ratioMinPrevNext','diffMaxPrevNext','ratioMaxPrevNext')
+  }
+  if (includeStatsPairConcepts) {
+    x$diffPrevMinMax <- x$prevMax - x$prevMin
+    x$ratioPrevMinMax <- x$prevMax / x$prevMin
+    x$diffNextMinMax <- x$nextMax - x$nextMin
+    x$ratioNextMinMax <- x$nextMax / x$nextMin
+    cols <- c(cols, 'diffPrevMinMax', 'ratioPrevMinMax', 'diffNextMinMax', 'ratioNextMinMax')
+  }
+  d <- x[,cols]
+  #  d2 <- x
+#  colnames(d2)[colnames(d2)=='prev.c1Gc2'] <- 'prev.c2Gc1.tmp'
+#  colnames(d2)[colnames(d2)=='prev.c2Gc1'] <- 'prev.c1Gc2'
+#  colnames(d2)[colnames(d2)=='prev.c2Gc1.tmp'] <- 'prev.c2Gc1'
+#  colnames(d2)[colnames(d2)=='next.c1Gc2'] <- 'next.c2Gc1.tmp'
+#  colnames(d2)[colnames(d2)=='next.c2Gc1'] <- 'next.c1Gc2'
+#  colnames(d2)[colnames(d2)=='next.c2Gc1.tmp'] <- 'next.c2Gc1'
+#  d <- rbind(d,d2)
+  if (returnDF) {
+    d
+  } else {
+    if (cv) {
+      r<-ldply(1:100, function(fold) {
+        res <- trainTestDF(d)
+        data.frame(accu=res$accuracy)        
+      })
+      print(paste("average accu:",mean(r$accu)))
+    } else {
+      res <- trainTestDF(d)
+      print(res$conf_mat)
+      print(paste('accuracy=',res$accuracy))
+      rpart.plot(res$tree)
+    }
+  }
+}
+
+
+# returns a list 
+trainTestDF <- function(d) {
+  trainIdx <- sample(nrow(d),nrow(d)*.6)
+  v<-1:nrow(d)
+  trainBool <-  v %in% trainIdx
+  testIdx <- v[!trainBool]
+  tree <- rpart(status ~ ., data=d[trainIdx,])
+  predicted = predict(tree, newdata=d[testIdx,], type="class")
+  conf_mat <- table(predicted, d[testIdx,]$status)
+  accu <- (conf_mat['discovery','discovery']+conf_mat['trivial','trivial']) / nrow(d[testIdx,])
+  list(accuracy=accu, tree=tree, conf_mat=conf_mat)
+}
+
+pickpair <- function(df, categories=c('discovery','trivial')) {
+  df0 <- df
+  if (!is.null(categories)) {
+    df0 <- df[df$status %in% categories,]
+  }
+  pairs <- unique(df0[,c('c1','c2')])
+  n <- sample(nrow(pairs),1)
+  pickedpair <- pairs[n,]
+#  print("PAIR")
+#  print(pickedpair)
+  df0[df0$c1==pickedpair$c1 & df0$c2==pickedpair$c2,]
+  
+}
+
+# df <- reformatAggregatedJointTopPMI(top_joint,aggregated_indiv,top_disc,withNames = TRUE)
+#
+multiplots_onecase <- function(df, top_discDF,top_disc_indivDF, sanitycheck_nbyears=71) {
+  pairs <- unique(df[,c('c1','c2')])
+  if (nrow(pairs)>1) {
+    stop('BUG more than one pair of concepts')
+  }
+  df0 <- df[order(df$year),]
+  print(cosine(replaceNAValues(df0$ma.c1),replaceNAValues(df0$ma.c2)))
+  if (nrow(df) != sanitycheck_nbyears) {
+    stop(paste('problem: expecting',sanitycheck_nbyears,'years'))
+  }
+  pair_disc <- top_discDF[top_discDF$source=='MED' & top_discDF$c1==pairs$c1 & top_discDF$c2==pairs$c2,]
+#  print(pair_disc)
+  n1 <- paste0(pair_disc$term1,' (',pair_disc$group1,")")
+  n2 <- paste0(pair_disc$term2,' (',pair_disc$group2,")")
+  name <- paste0(n1,' - ',n2,': ',pair_disc$status)
+
+  indivDF <- melt(df,measure.vars = c('ma.c1','ma.c2'),value.name = 'ma.freq')
+#  print(head(indivDF))
+  firstYearDF <- ddply(indivDF,'variable',function(s) {
+    nonzero <- s[!is.na(s$ma.freq) & s$ma.freq>0,]
+    firstyear <- min(nonzero$year)
+    nonzero[nonzero$year==firstyear,]
+  })
+  top_disc_indivDF <- top_disc_indivDF[top_disc_indivDF$aggreg.method=='ma',] 
+  mapped_concepts <- ddply(firstYearDF,'variable',function(s) {
+    if (s$variable == 'ma.c1') {
+      data.frame(concept=s$c1)
+    } else {
+      data.frame(concept=s$c2)
+    }
+  })
+  top_disc_indivDF<-merge(mapped_concepts, top_disc_indivDF,by='concept')
+#  print(top_disc_indivDF)
+  
+  indivDF$ma.prob <- indivDF$ma.freq / indivDF$ma.total 
+  indivDF$ma.condi <-indivDF$ma.joint / indivDF$ma.freq
+  g_indiv_both <- ggplot(indivDF, aes(year,ma.freq,fill=variable))+geom_col(position='identity',alpha=.5) + geom_vline(data=pair_disc,aes(xintercept=disc.year,linetype=indicator)) + geom_vline(data=firstYearDF,aes(xintercept=year,colour=variable),linetype="dotted") +geom_vline(data=top_disc_indivDF,aes(xintercept=disc.year,colour=variable,linetype=indicator))+ theme(legend.position = "none")+xlab("")
+#  g_indiv1 <- ggplot(df, aes(year,ma.c1))+geom_col()+geom_vline(data=pair_disc,aes(xintercept=disc.year,linetype=indicator))+ theme(legend.position = "none")
+#  g_indiv2 <- ggplot(df, aes(year,ma.c2))+geom_col()+geom_vline(data=pair_disc,aes(xintercept=disc.year,linetype=indicator))+ theme(legend.position = "none")
+  g_condi_both <- ggplot(indivDF, aes(year,ma.condi,colour=variable))+geom_line(alpha=.5,size=2)+geom_vline(data=pair_disc,aes(xintercept=disc.year,linetype=indicator))+ geom_vline(data=firstYearDF,aes(xintercept=year,colour=variable),linetype="dashed")+geom_vline(data=top_disc_indivDF,aes(xintercept=disc.year,colour=variable,linetype=indicator))+ theme(legend.position = "none")+xlab("")
+  g_joint <- ggplot(df, aes(year, ma.joint))+geom_col()+xlab("")
+  
+  g_title <- ggdraw() + 
+    draw_label(
+      name,
+      size=8
+#      fontface = 'bold',
+#      x = 0,
+#      hjust = 0
+    )
+  plot_grid(g_title,
+            g_indiv_both,
+            g_condi_both,
+            g_joint,
+            labels = c('','Indiv','Condi','Joint'),
+            label_x = 0.2,
+            nrow = 4,
+            rel_heights = c(0.15, 1,1,1))
+}
+
+
+study3 <- function(study1DF) {
+  d <- study1DF
+  d$prev.diff <- abs(d$prev.c1 - d$prev.c2)
+  ddply(d, c('c1','c2','indicator','status'),function(s) {
+    if (nrow(s)!=1) {
+      stop('bug')
+    }
+    if (s$prev.c1 > s$prev.c2) {
+      diff_cond_time_largest <- s$next.c1Gc2 - s$prev.c1Gc2
+    } else {
+      diff_cond_time_largest <- s$next.c2Gc1 - s$prev.c2Gc1
+    }
+    data.frame(diff_cond_time_largest=diff_cond_time_largest,prev.diff=s$prev.diff)
+  })
+}
+
+study3prop <- function(study3DF) {
+  d <- study3DF
+  d$posi <- d$diff_cond_time_largest>0
+  ddply(d,c('indicator','posi'),function(s) { 
+    disc <- nrow(s[s$status=='discovery',])
+    tot <- nrow(s)
+    data.frame(disc=disc,tot=tot, prop_disc=disc/tot) 
+  })
+}
+
+
+get_top_indiv <- function(aggJointDF, fullAggIndivDF) {
+  fullIndivMed <- fullAggIndivDF[fullAggIndivDF$source=='MED',]
+  targets <- unique(c(aggJointDF$c1, aggJointDF$c2))
+  fullIndivMed[fullIndivMed$concept %in% targets,]
+}
+
+
+replaceNAValues <- function(v, replaceWith=0) {
+  naValues <- is.na(v)
+  v[naValues] <- rep(0,length(naValues[naValues]))
+  v
+}
+
+
+similarityYears <- function(df, idCols=c('c1','c2'), valcol1='ma.c1',valcol2='ma.c2') {
+  ddply(df, idCols, function(s) {
+    if (nrow(s) != 71) {
+      stop('bug')
+    }
+    val1 <- replaceNAValues(s[order(s$year),valcol1])
+    val2 <- replaceNAValues(s[order(s$year),valcol2])
+    data.frame(mae=mean(abs(val1-val2)),cos=cosine(val1,val2))
+#    data.frame(cos=cosine(val1,val2))
+  })
+}
+
+simThresholdDF <- function(discDFWithSim, returnF1DF=FALSE) {
+  d <- discDFWithSim[discDFWithSim$status!='unclear',]
+  values <- sort(unique(d$cos))
+  res<-ldply(values, function(t) {
+    c <- d[d$cos<=t,]
+    nbDisc <- nrow(c[c$status=='discovery',])
+    nbTriv <- nrow(c[c$status=='trivial',])
+    data.frame(threshold=c(t,t),total=c(nrow(c),nrow(c)),status=c("discovery",'trivial'),nb=c(nbDisc, nbTriv),prop=c(nbDisc/nrow(c), nbTriv/nrow(c)))
+  })
+  optimsep<-ldply(values,function(t) {
+    tp <- nrow(d[d$cos<=t & d$status=='discovery',])
+    fp <- nrow(d[d$cos<=t & d$status!='discovery',])
+    tn <- nrow(d[d$cos>t & d$status!='discovery',])
+    fn <- nrow(d[d$cos>t & d$status=='discovery',])
+    prec <- tp/(tp+fp)
+    rec <- tp/(tp+fn)
+    f1 <- 2 * prec * rec / (prec+rec)
+    data.frame(threshold=c(t,t,t), score=c('prec','rec','f1'),perf=c(prec,rec,f1))
+  })
+  if (returnF1DF) {
+    optimsep
+  } else {
+    res
+  }
+}
+
+bestThreshold <- function(d,valCol='diff_cond_time_largest', positiveLowerThanThreshold=TRUE,positiveClass='discovery', labelCol='status') {
+  values <- sort(unique(d[,valCol]))
+  optimsep<-ldply(values,function(t) {
+    tp <- nrow(d[d[,valCol]<=t & d[,labelCol]==positiveClass,])
+    fp <- nrow(d[d[,valCol]<=t & d[,labelCol]!=positiveClass,])
+    fn <- nrow(d[d[,valCol]>t & d[,labelCol]==positiveClass,])
+    tn <- nrow(d[d[,valCol]>t & d[,labelCol]!=positiveClass,])
+    if (!positiveLowerThanThreshold) {
+      tmp <- tp
+      tp <- fn
+      fn <- tmp
+      tmp <- tn
+      tn <- fp
+      fp <- tmp
+    }
+    prec <- tp/(tp+fp)
+    rec <- tp/(tp+fn)
+    f1 <- 2 * prec * rec / (prec+rec)
+    data.frame(threshold=c(t,t,t), score=c('prec','rec','f1'),perf=c(prec,rec,f1))
+  })
+  maxf1<-max(optimsep[optimsep$score=='f1','perf'],na.rm = TRUE)
+#  print(maxf1)
+  maxt <- optimsep[!is.na(optimsep$perf) & optimsep$score=='f1' & optimsep$perf==maxf1 ,'threshold']
+#  print(maxt)
+  print(optimsep[optimsep$threshold==maxt,])
+  optimsep
+}
+
+merge2columns <- function(mainDF, dictDF, mainDFcols=c('c1','c2'),dictDFcol='concept', extraIdCols=c(),suffixMain='.joint',suffixesPair=c('.c1','.c2')) {
+  tmp <- merge(mainDF,dictDF,by.x=c(extraIdCols,mainDFcols[1]),by.y=c(extraIdCols,dictDFcol),suffixes=c(suffixMain,''))
+  merge(tmp, dictDF,by.x=c(extraIdCols,mainDFcols[2]),by.y=c(extraIdCols,dictDFcol),suffixes=suffixesPair)
+}
+
+mergeAggJointAggIndiv <- function(agg_joint, agg_indiv,groupCols=c('source','half_window','year')) {
+  # removing the ma.total col from indiv in order to avoid having it 3 times (it's the same in iindiv and joint)
+  agg_indiv_no_total <- agg_indiv[,colnames(agg_indiv)[colnames(agg_indiv) !='ma.total'],]
+  merge2columns(agg_joint, agg_indiv_no_total,extraIdCols = groupCols)
+}
+
+
+# df may contain several cases, default is to pick one at random
+# df must contain columns all the ma columns:
+# joint_rich_format<-mergeAggJointAggIndiv(aggregated_joint,aggregated_indiv)
+# disc_joint and disc_indiv are optional, if used the disc years of the indiv/joint concepts are plotted
+multiplot_joint <- function(joint_rich_format, sanitycheck_nbyears=71,pickRandomPair=TRUE,idCols=c('c1','c2'), termCols=c('term.c1','term.c2'), disc_joint=NULL,disc_indiv=NULL, assocGraphCols=NULL) {
+  pairs <- unique(joint_rich_format[,idCols])
+  if (nrow(pairs)>1) {
+    if (pickRandomPair) {
+      pairs <- unique(joint_rich_format[,idCols])
+      n <- sample(nrow(pairs),1)
+      pickedpair <- pairs[n,]
+      joint_rich_format <- joint_rich_format[joint_rich_format[,idCols[1]]==pickedpair[,idCols[1]] & joint_rich_format[,idCols[2]]==pickedpair[,idCols[2]],]
+    } else {
+      stop('BUG more than one pair of concepts and pickRandomPair is FALSE')
+    }
+  }
+  df0 <- joint_rich_format[order(joint_rich_format$year),]
+  if (nrow(df0) != sanitycheck_nbyears) {
+    stop(paste('problem: expecting',sanitycheck_nbyears,'years'))
+  }
+  if (!is.null(termCols) & termCols[1] %in% colnames(df0)) {
+    name1 <- paste0(df0[1,idCols[1]],' [',df0[1,termCols[1]], ']')
+    name2 <- paste0(df0[1,idCols[2]],' [',df0[1,termCols[2]], ']')
+  } else {
+    name1 <- paste0(df0[1,idCols[1]])
+    name2 <- paste0(df0[1,idCols[2]])
+  }
+  name <- paste0(name1, ' - ', name2)
+  
+  indivDF <- melt(df0,measure.vars = c('ma.c1','ma.c2'),value.name = 'ma.freq')
+  #  print(head(indivDF))
+  firstYearDF <- ddply(indivDF,'variable',function(s) {
+    nonzero <- s[!is.na(s$ma.freq) & s$ma.freq>0,]
+    firstyear <- min(nonzero$year)
+    nonzero[nonzero$year==firstyear,]
+  })
+  mapped_concepts <- ddply(firstYearDF,'variable',function(s) {
+    if (s$variable == 'ma.c1') {
+      data.frame(concept=s$c1)
+    } else {
+      data.frame(concept=s$c2)
+    }
+  })
+  if (!is.null(disc_joint)){
+    disc_joint <- disc_joint[disc_joint$source=='MED' & disc_joint$c1==pairs$c1 & disc_joint$c2==pairs$c2,]
+  }
+  if (!is.null(disc_indiv)) {
+    disc_indiv <- disc_indiv[disc_indiv$aggreg.method=='ma',] 
+    disc_indiv <- merge(mapped_concepts, disc_indiv,by='concept')
+  }
+  #  print(top_disc_indivDF)
+  
+  indivDF$ma.prob <- indivDF$ma.freq / indivDF$ma.total 
+  indivDF$ma.condi <-indivDF$ma.joint / indivDF$ma.freq
+  g_indiv_both <- ggplot(indivDF, aes(year,ma.freq,fill=variable))+geom_col(position='identity',alpha=.5)  + geom_vline(data=firstYearDF,aes(xintercept=year,colour=variable),linetype="dotted")
+  g_condi_both <- ggplot(indivDF, aes(year,ma.condi,colour=variable))+geom_line(alpha=.5,size=2)+ geom_vline(data=firstYearDF,aes(xintercept=year,colour=variable),linetype="dotted")
+  g_joint <- ggplot(df0, aes(year, ma.joint))+geom_col()+xlab("")
+  if (!is.null(disc_joint)) {
+    g_indiv_both <- g_indiv_both + geom_vline(data=disc_joint,aes(xintercept=disc.year,linetype=indicator))
+    g_condi_both <- g_condi_both + geom_vline(data=disc_joint,aes(xintercept=disc.year,linetype=indicator))
+  }
+  if (!is.null(disc_indiv)) {
+    g_indiv_both <- g_indiv_both  +geom_vline(data=disc_indiv,aes(xintercept=disc.year,colour=variable,linetype=indicator))
+    g_condi_both <- g_condi_both  +geom_vline(data=disc_indiv,aes(xintercept=disc.year,colour=variable,linetype=indicator))
+  }
+  g_indiv_both <- g_indiv_both  + theme(legend.position = "none")+xlab("")
+  g_condi_both <- g_condi_both  + theme(legend.position = "none")+xlab("")
+  g_title <- ggdraw() + 
+    draw_label(
+      name,
+      size=8
+      #      fontface = 'bold',
+      #      x = 0,
+      #      hjust = 0
+    )
+  
+  if (!is.null(assocGraphCols)) {
+      assocDF <- melt(df0[,c('year',assocGraphCols)], id.vars='year',variable.name='assoc.measure')
+    g_assoc <- ggplot(assocDF,aes(year,value,colour=assoc.measure))+geom_line()+ theme(legend.position = "none")+xlab("")
+    plot_grid(g_title,
+              g_indiv_both,
+              g_condi_both,
+              g_joint,
+              g_assoc,
+              labels = c('','Indiv','Condi','Joint','Assoc'),
+              label_x = 0.2,
+              nrow = 5,
+              rel_heights = c(0.15, 1,1,1,1))
+  } else {
+  plot_grid(g_title,
+            g_indiv_both,
+            g_condi_both,
+            g_joint,
+            labels = c('','Indiv','Condi','Joint'),
+            label_x = 0.2,
+            nrow = 4,
+            rel_heights = c(0.15, 1,1,1))
+  }
+}
+
+
+#
+# if normalized is FALSE returns the binary MI.
+# if normalized is TRUE, returns a list (mi, nmi): the first is regular (binary) MI and the second is normalized MI (NMI)
+#
+binaryMI <- function(pA, pB, pA_B, normalized=FALSE) {
+  pNA_B <- pB - pA_B
+  pA_NB <- pA - pA_B
+  pNA_NB <- 1 - ( pA_B + pNA_B + pA_NB)
+  mi <- rep(0, length(pA_B))
+  mi[pNA_NB>0] <- mi[pNA_NB>0] + pNA_NB[pNA_NB>0] * log2( pNA_NB[pNA_NB>0] / ((1-pA[pNA_NB>0]) * (1-pB[pNA_NB>0])) )
+  mi[pNA_B>0] <- mi[pNA_B>0] + pNA_B[pNA_B>0] * log2( pNA_B[pNA_B>0] / ((1-pA[pNA_B>0]) * pB[pNA_B>0]) )
+  mi[pA_NB>0] <- mi[pA_NB>0] + pA_NB[pA_NB>0] * log2( pA_NB[pA_NB>0] / (pA[pA_NB>0] * (1-pB[pA_NB>0])) )
+  mi[pA_B>0] <- mi[pA_B>0] + pA_B[pA_B>0] * log2( pA_B[pA_B>0] / (pA[pA_B>0] * pB[pA_B>0]) )
+  if (normalized) {
+    norm <- rep(0, length(pA_B))
+    norm[pNA_NB>0] <- norm[pNA_NB>0] + pNA_NB[pNA_NB>0] * log2( pNA_NB[pNA_NB>0]  )
+    norm[pNA_B>0] <- norm[pNA_B>0] + pNA_B[pNA_B>0] * log2( pNA_B[pNA_B>0]  )
+    norm[pA_NB>0] <- norm[pA_NB>0] + pA_NB[pA_NB>0] * log2( pA_NB[pA_NB>0]  )
+    norm[pA_B>0] <- norm[pA_B>0] + pA_B[pA_B>0] * log2( pA_B[pA_B>0] )
+    list(mi=mi, nmi=mi/-norm)
+  } else {
+    mi
+  }
+}
+
+default_measures = c('scp', 'pmi', 'npmi', 'mi', 'nmi', 'pmi2', 'pmi3')
+
+# - df must contain columns all the ma columns:
+#   joint_rich_format <- mergeAggJointAggIndiv(aggregated_joint,aggregated_indiv)
+# - there must not be any NA:
+#   integratedRelationsDF <- joint_rich_format[!is.na(joint_rich_format$ma.total),]
+#
+calculateAssociation <- function(integratedRelationsDF, filterMeasures=default_measures,docFreq1Col='ma.c1',docFreq2Col='ma.c2', jointFreqCol='ma.joint',totalCol='ma.total') { 
+  jointProb <- integratedRelationsDF[,jointFreqCol] / integratedRelationsDF[,totalCol]
+  pA <- integratedRelationsDF[,docFreq1Col] / integratedRelationsDF[,totalCol]
+  pB <- integratedRelationsDF[,docFreq2Col] / integratedRelationsDF[,totalCol]
+  pmi <- log2( jointProb / (pA * pB) )
+  if ('scp' %in% filterMeasures) {
+    integratedRelationsDF$scp <- jointProb ^ 2 / (pA * pB)
+  }
+  if ('pmi' %in% filterMeasures) {
+    integratedRelationsDF$pmi <- pmi
+  }
+  if ('npmi' %in% filterMeasures) {
+    integratedRelationsDF$npmi <- - pmi / log2(jointProb)
+  }
+  if ('nmi' %in% filterMeasures) {
+    l <- binaryMI(pA, pB, jointProb, normalized=TRUE)
+    integratedRelationsDF$mi <- l$mi
+    integratedRelationsDF$nmi <- l$nmi
+  } else {
+    if ('mi' %in% filterMeasures) {
+      integratedRelationsDF$mi <- binaryMI(pA, pB, jointProb)
+    }
+  }
+  if ('pmi2' %in% filterMeasures) {
+    integratedRelationsDF$pmi2 <- log2( (jointProb^2) / (pA * pB) )
+  }
+  if ('pmi3' %in% filterMeasures) {
+    integratedRelationsDF$pmi3 <- log2( (jointProb^3) / (pA * pB) )
+  }
+  integratedRelationsDF
+}
+
+
+
+computeSurgeIndicators2 <- function(aggregDF, valueCols='ma.joint', discardNonFiniteValues=FALSE) {
+  minYear <- min(aggregDF$year)
+  #  resDF <- data.frame()
+  ldply(valueCols,function(valueCol) {
+    resDF <- rbind(aggregDF,aggregDF)
+    if (! valueCol %in% colnames(aggregDF)) {
+      stop(paste0('Error: no column "',valueCol,'" (value column) in dataframe'))
+    }
+    values <- aggregDF[,valueCol]
+    prevValues <- head(values,-1) # remove last
+    nextValues <- tail(values,-1) # remove first
+    rate <- (nextValues-prevValues) / prevValues
+    rate <- c(NA, rate)
+    diff <- nextValues-prevValues
+    diff <- c(NA, diff)
+    resDF$trend <- c(rate,diff)
+    resDF$indicator <- c(rep(paste(valueCol,'rate',sep='.'),length(rate)),rep(paste(valueCol,'diff',sep='.'),length(rate)))
+    if (discardNonFiniteValues) {
+      resDF[is.finite(resDF$trend),]
+    } else {
+      resDF
+    }
+  })
+}
+  
+
+showTopN <- function(df, N, idCols=c('source','half_window','indicator','disc.method'),orderBy='disc.trend') {
+  ddply(df, idCols, function(s) {
+    tail(s[order(s[,orderBy]),], N)
+  })
+}
+
+
+studyDiscYears <- function(jointDF, discDF,mergeBy=c('c1','c2','half_window','source','indicator')) {
+  discDF$disc.prevyear <- discDF$disc.year -1
+  before <- merge(jointDF, discDF, by.x=c(mergeBy,'year'), by.y=c(mergeBy,'disc.prevyear'))
+  before$disc.year <- NULL
+  after <- merge(jointDF, discDF, by.x=c(mergeBy,'year'), by.y=c(mergeBy,'disc.year'))
+  after$disc.prevyear <- NULL
+  before$when <- rep('before', nrow(before))
+  after$when <- rep('after', nrow(after))
+  rbind(before,after)
 }
