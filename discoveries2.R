@@ -998,3 +998,27 @@ studyDiscYears <- function(jointDF, discDF,mergeBy=c('c1','c2','half_window','so
   after$when <- rep('after', nrow(after))
   rbind(before,after)
 }
+
+
+##############################
+
+
+#
+# based on previous computeDiscoveryYears function but returns all the surge years according to outliers method
+#
+computeSurgeYears <- function(df, idCols=c('source','concept','half_window','indicator','aggreg.method')) {
+  minYear <- min(df$year)
+  maxYear <- max(df$year)
+  ddply(df, idCols, function(singleCaseDF) {
+    if (nrow(singleCaseDF) != maxYear-minYear+1) {
+      stop(paste('Error: sanity check failed, expected',maxYear-minYear+1,'years for single case but found',nrow(singleCaseDF)))
+    }
+    # always removing any non-finite trend value
+    singleCaseDF <- singleCaseDF[is.finite(singleCaseDF$trend),]
+    if (nrow(singleCaseDF[!is.na(singleCaseDF$trend),]) > 0) {
+#       print(singleCaseDF[!is.na(singleCaseDF$trend),])
+      t <- calculateThresholdTopOutliers(singleCaseDF$trend)
+      singleCaseDF[singleCaseDF$trend>=t,]
+    }
+  })   
+}
