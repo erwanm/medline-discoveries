@@ -5,6 +5,7 @@ library(rpart)
 library(rpart.plot)
 library(cowplot)
 library(lsa)
+library(data.table)
 
 mesh.ALS <- 'MESH:D000690'
 mesh.FTD <- 'MESH:D057180'
@@ -956,7 +957,6 @@ calculateAssociation <- function(integratedRelationsDF, filterMeasures=default_m
 
 
 computeSurgeIndicators2 <- function(aggregDF, valueCols='ma.joint', discardNonFiniteValues=FALSE) {
-  minYear <- min(aggregDF$year)
   #  resDF <- data.frame()
   ldply(valueCols,function(valueCol) {
     resDF <- rbind(aggregDF,aggregDF)
@@ -1015,10 +1015,99 @@ computeSurgeYears <- function(df, idCols=c('source','concept','half_window','ind
     }
     # always removing any non-finite trend value
     singleCaseDF <- singleCaseDF[is.finite(singleCaseDF$trend),]
-    if (nrow(singleCaseDF[!is.na(singleCaseDF$trend),]) > 0) {
+    if (nrow(singleCaseDF) > 0) {
 #       print(singleCaseDF[!is.na(singleCaseDF$trend),])
       t <- calculateThresholdTopOutliers(singleCaseDF$trend)
-      singleCaseDF[singleCaseDF$trend>=t,]
+      singleCaseDF[singleCaseDF$trend>=t,colnames(singleCaseDF)[!colnames(singleCaseDF) %in% idCols]]
     }
   })   
+}
+
+
+#####
+
+
+# NOTHING FINIHED HERE
+
+# new version:
+# - fixing bug about possible wrong shift previous/next year in previous version
+# - input as data.table, modified by reference
+# - combines the 2 steps of computing the 'trend' and selecting outliers as in 'computeSurgeYears'
+# - uses the first full version of indicators
+#
+# aggregDF <- applyAggregMethods(...)
+# aggregDT <- as.data.table(aggregDF)
+#
+computeSurgeYears2 <- function(aggregDT, idCols=c('source','concept','half_window','aggreg.method'), indicator='prob.rate', globalOutliers=FALSE) {
+  setkeyv(aggregDT, idCols)
+  d <- aggregDT[,prob:=ma/ma.total,]
+  d[, c('ma.prev', 'prob.prev') := list( c(NA,head(ma,-1)), c(NA,head(prob,-1)) ), by=key(d)]
+  if ('prob.rate' == indicator) {
+    d[, trend := (prob-prob.prev)/prob.prev,]
+  }
+  if ('prob.diff' == indicator) {
+    d[, trend := prob-prob.prev,]
+  }
+  if ('prod.log' == indicator) {
+    d[, freq.diff := ma-ma.prev,]
+    d[, prob.rate := (prob-prob.prev)/prob.prev,]
+    d[, trend := calculateProdLog(prob.rate, freq.diff),]
+  }
+  # always removing any non-finite trend value
+  d <- d[is.finite(trend),]
+  if (globalOutliers) {
+    d[, surge := trend>=calculateThresholdTopOutliers(trend),]
+  } else {
+    d[, surge := trend>=calculateThresholdTopOutliers(trend), by=key(d)]
+  }
+  d
+}
+
+
+
+# returns x * log(y) if y>1, NA otherwise (in order to prevent negative log result)
+calculateProdLog <- function(x,y) {
+  res <- rep(NA, length(x))
+  regularCase <- is.finite(y) & y > 1
+  res[regularCase] <- x[regularCase] * log2(y[regularCase])
+  res
+}
+
+
+# dt <- computeSurgeYears2(..)
+countSurges <- function(dt) {
+  x <- dt[, list(nb.surges=length(surge[surge])), by=key(dt)]
+  x[order(nb.surges), list(nb.cases=.N),by=nb.surges]
+}
+
+
+# OBSOLETE, PROBABLY TO DELETE
+# similar role and code as calculateIndicators in previous version, but no DF for use with data.table.
+# single indicator as input, returns a vector
+#
+calculateTrendIndicators <- function(probRate, probDiff, freqDiff, indicator) {
+    if (indicator=='prob.rate') {
+      probRate
+    } else {
+      if (indicator=='prob.diff') {
+        probDiff
+      } else {
+        if (indicator=='product.log') {
+          trend <- rep(NA, length(freqDiff))
+          # note: freqDiff must be higher than 1 in order to prevent negative value
+          regularCase <- !is.na(freqDiff) & freqDiff > 1
+          trend[regularCase] <- probRate[regularCase] * log2(freqDiff[regularCase])
+          trend
+        } else {
+          if (indicator=='product') {
+            trend <- probDiff * probRate
+            negResult <- !is.na(probDiff) & !is.na(probRate) & probDiff<0 & probRate <0
+            trend[negResult] <- -1 * trend[negResult] 
+	    trend
+          } else {
+            stop(paste('Error: invalid indicator id',indicator))
+          }
+        }
+      }
+    }
 }
