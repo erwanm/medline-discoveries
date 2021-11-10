@@ -47,7 +47,9 @@ loadDynamicTotalFile <- function(dir='data/21-extract-discoveries/recompute-with
 #
 loadStaticData <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED/across-all-years/',jointFile='joint.min100.ND',indivFile='indiv.min100.ND.terms', totalFile='indiv.full.total',merged=TRUE) {
   joint <- fread(paste(dir, jointFile,sep='/'),col.names=c('c1','c2','freq'))
+  setkey(joint,c1,c2)
   indiv <- fread(paste(dir, indivFile,sep='/'),col.names=c('concept','freq','term','group'),drop=3)
+  setkey(indiv,concept)
   totaldocs <- read.table(paste(dir, totalFile,sep='/'))[1,1]
   if (merged) {
     mergeStaticJointWithIndivData(joint, indiv, totaldocs)
@@ -114,10 +116,12 @@ selectTotalYears <- function(totalsDT, minY,maxY) {
 # - The key of mainDT must have been set.
 #
 computeMovingAverage <- function(mainDT, totalsDT, window=1) {
+  mainDT <- fillIncompleteYears(mainDT,idCols=key(mainDT),padBeforeStartYear=ceiling((window-1)/2)+1,filterMinYear=min(mainDT$year))
   totalsDT[,ma.total := ma(total, window, padWithNA = TRUE),]
-#  mainDT[,c('ma','ma.total') := list(ma(freq, window, padWithNA = TRUE), selectTotalYears(totalsDT,min(year),max(year))),by=key(mainDT)]
+  mainDT[,c('ma','ma.total') := list(ma(freq, window, padWithNA = TRUE), selectTotalYears(totalsDT,min(year),max(year))),by=key(mainDT)]
   mainDT[,ma := ma(freq, window, padWithNA = TRUE),by=key(mainDT)]
-  mainDT[,ma.total := as.double(selectTotalYears(totalsDT,min(year),max(year))),by=key(mainDT)]
+  mainDT[,ma.total := selectTotalYears(totalsDT,min(year),max(year)),by=key(mainDT)]
+  mainDT
 }
 
 
@@ -130,16 +134,12 @@ calculateProdLog <- function(x,y) {
 }
 
 
-# new version:
-# - fixing bug about possible wrong shift previous/next year in previous version
 # - input as data.table, modified by reference
-# - combines the 2 steps of computing the 'trend' and selecting outliers as in 'computeSurgeYears'
 # - possible indicators: 'prob.rate', 'prob.diff, 'prod.log'
-# - outliers can be taken either globally (across all the 'trend' values) or locally (among the 'trend' values by key)
 #
 # d <- computeMovingAverage(...)
 #
-computeSurgeYears <- function(d, indicator='prob.rate', globalOutliers=FALSE) {
+computeTrend <- function(d, indicator='prob.rate') {
   d[,prob:=ma/ma.total,]
   d[, c('ma.prev', 'prob.prev') := list( c(NA,head(ma,-1)), c(NA,head(prob,-1)) ), by=key(d)]
   if ('prob.rate' == indicator) {
@@ -153,8 +153,30 @@ computeSurgeYears <- function(d, indicator='prob.rate', globalOutliers=FALSE) {
     d[, prob.rate := (prob-prob.prev)/prob.prev,]
     d[, trend := calculateProdLog(prob.rate, freq.diff),]
   }
-  # always removing any non-finite trend value
-  d <- d[is.finite(trend),]
+  d
+}
+
+
+# returns the threshold for upper outliers for the values in v0: Q3 + 1.5 IQR
+#
+calculateThresholdTopOutliers <- function(v0) {
+  v <- v0[!is.na(v0)]
+  if (length(v)>0) {
+    quartiles <- quantile(v,c(.25,.75))
+    iqr <- quartiles[2] - quartiles[1] # Q3-Q1
+    quartiles[2] + 1.5*iqr
+  } else {
+    NA
+  }
+}
+
+
+#
+# - outliers can be taken either globally (across all the 'trend' values) or locally (among the 'trend' values by key)
+# trendDT <- computeTrend(..)
+#
+detectSurges <- function(trendDT, globalOutliers=FALSE) {
+  d <- trendDT[is.finite(trend),]
   if (globalOutliers) {
     d[, surge := trend>=calculateThresholdTopOutliers(trend),]
   } else {
@@ -162,6 +184,25 @@ computeSurgeYears <- function(d, indicator='prob.rate', globalOutliers=FALSE) {
   }
   d
 }
+
+#
+# - 'oneSurgeByKey': 'no' for keeping all the surges, 'first' for picking the earliest, 'max' for picking the max trend
+#
+# surgesDT <- detectSurges(..)
+#
+filterSurges <- function(surgesDT, oneSurgeByKey='no',minTrend=-Inf) {
+  d <- surgesDT[surge==TRUE & trend>=minTrend,]
+  if (oneSurgeByKey != 'no') {
+    if (oneSurgeByKey == 'max') {
+      d<-d[trend==max(trend),,by=key(d)]
+    }
+    if (oneSurgeByKey == 'first') {
+      d<-d[year==min(year),,by=key(d)]
+    }
+  }
+}
+
+
 
 
 #
@@ -191,41 +232,53 @@ binaryMI <- function(pA, pB, pA_B, normalized=FALSE) {
 
 default_measures = c('scp', 'pmi', 'npmi', 'mi', 'nmi', 'pmi2', 'pmi3')
 
-# - df must contain columns all the ma columns:
-#   joint_rich_format <- mergeAggJointAggIndiv(aggregated_joint,aggregated_indiv)
-# - there must not be any NA:
-#   integratedRelationsDF <- joint_rich_format[!is.na(joint_rich_format$ma.total),]
 #
-calculateAssociation <- function(integratedRelationsDF, filterMeasures=default_measures,docFreq1Col='ma.c1',docFreq2Col='ma.c2', jointFreqCol='ma.joint',totalCol='ma.total') { 
-  jointProb <- integratedRelationsDF[,jointFreqCol] / integratedRelationsDF[,totalCol]
-  pA <- integratedRelationsDF[,docFreq1Col] / integratedRelationsDF[,totalCol]
-  pB <- integratedRelationsDF[,docFreq2Col] / integratedRelationsDF[,totalCol]
-  pmi <- log2( jointProb / (pA * pB) )
+calculateAssociation <- function(dt, filterMeasures=default_measures) { 
+  dt[,prob.joint := freq.joint / total,]
+  dt[,prob.c1 := freq.c1 / total,]
+  dt[,prob.c2 := freq.c2 / total,]
+  dt[,prob.C1GivenC2 := freq.joint / freq.c2,]
+  dt[,prob.C2GivenC1 := freq.joint / freq.c1,]
+  dt[,pmi := log2( prob.joint / (prob.c1 * prob.c2) ),]
   if ('scp' %in% filterMeasures) {
-    integratedRelationsDF$scp <- jointProb ^ 2 / (pA * pB)
-  }
-  if ('pmi' %in% filterMeasures) {
-    integratedRelationsDF$pmi <- pmi
+    dt[, scp := prob.joint^2 / (prob.c1*prob.c2),]
   }
   if ('npmi' %in% filterMeasures) {
-    integratedRelationsDF$npmi <- - pmi / log2(jointProb)
+    dt[,npmi := pmi / log2(prob.joint),]
   }
   if ('nmi' %in% filterMeasures) {
-    l <- binaryMI(pA, pB, jointProb, normalized=TRUE)
-    integratedRelationsDF$mi <- l$mi
-    integratedRelationsDF$nmi <- l$nmi
+    l <- binaryMI(dt[,prob.c1], dt[,prob.c2], dt[,prob.joint], normalized=TRUE)
+    dt[,mi := l$mi,]
+    dt[,nmi := l$nmi,]
   } else {
     if ('mi' %in% filterMeasures) {
-      integratedRelationsDF$mi <- binaryMI(pA, pB, jointProb)
+      dt[,mi := l$mi,]
+      integratedRelationsDF$mi <- binaryMI(dt[,prob.c1], dt[,prob.c2], dt[,prob.joint])
     }
   }
   if ('pmi2' %in% filterMeasures) {
-    integratedRelationsDF$pmi2 <- log2( (jointProb^2) / (pA * pB) )
+    dt[, pmi2 := log2( (prob.joint^2) / (prob.c1 * prob.c2) ), ]
   }
   if ('pmi3' %in% filterMeasures) {
-    integratedRelationsDF$pmi3 <- log2( (jointProb^3) / (pA * pB) )
+    dt[, pmi3 := log2( (prob.joint^3) / (prob.c1 * prob.c2) ), ]
   }
-  integratedRelationsDF
 }
 
 
+# Merge dynamic datatable with static data and computes association measures.
+#
+# This function can be used with any dt as 'relations', but it is advisable to use it only with the
+# smaller table obtained by filtering computeSurges:
+#
+# surges <- detectSurges(..)
+# surges <- surges[surge==TRUE,]
+# addStaticDataToRelations(surges, ...)
+#
+# The static data should be in the default 'merged' format obtained from loadStaticData;
+# staticData <- loadStaticData(...)
+#
+addStaticAssociationToRelations <- function(relationsDT, staticData, filterMeasures = c('pmi','npmi')) {
+  d <- merge(relationsDT, staticData, by=c('c1','c2'),suffixes=c('.dynamic','.static'))
+  calculateAssociation(d,filterMeasures=filterMeasures)
+  d
+}
