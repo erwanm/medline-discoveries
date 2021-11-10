@@ -13,164 +13,37 @@ library(ggplot2)
 source('discoveries3.R')
 knitr::opts_chunk$set(echo = TRUE)
 # TODO temporary path
-dataPath <- '../data/21-extract-discoveries/recompute-with-ND-group/MED'
+dataPath <- './1.prod.log.global.tsv'
 dataPathStatic <- paste(dataPath,'across-all-years',sep='/')
 ```
 
 
-# Preparing the input data
-
-The initial raw data is extracted from the Medline database using the ... KD, tdc tools, steps  
-
-TODO
-
-# Loading the input data
+TODO: This part assumes that the data from the first step has been computed and is available as a file; see first step
 
 
+# Loading data
 
-```{r load dynamic}
-dynamic_joint <- loadDynamicData(dataPath,indivOrJoint = 'joint')
-dynamic_indiv <- loadDynamicData(dataPath,indivOrJoint = 'indiv')
-dynamic_total <- loadDynamicTotalFile(dataPath)
+## Surges data
+
+```{r loading surges}
+all_surges <- fread(surgesDataPath)
 ```
 
-* Number of rows, i.e. pairs (relation,year):
+## Static data
 
-```{r nrow1}
-# TEMPORARY FOR TESTS
-dynamic_joint <- head(dynamic_joint,20000)
-nrow(dynamic_joint)
+This data table will contain the global frequency statistics across time
+
+```{r loading static}
+static_joint <- loadStaticData(dataPathStatic)
 ```
 
-* Number of relations:
+# Refining target surges
 
-```{r}
-nrow(unique(dynamic_joint,by=key(dynamic_joint)))
+```{r max surges}
+surges <- filterSurges(all_surges,oneSurgeByKey='max',minTrend=2)
 ```
-
-
-
-```{r load static}
-static_data <- loadStaticData(dataPathStatic)
-```
-
-# Preprocessing
-
-This step fills the gap years with 0 frequency values and calculates the moving average if needed.
-
-- This step is necessary even if the moving average is not used (default window of size 1).
-
-With a moving average over a window of size 3:
-
-```{r ma5}
-relations <- computeMovingAverage(dynamic_joint,dynamic_total, window=3)
-```
-
-Using the default window of size 1, i.e. no moving average:
-
-```{r ma}
-relations <- computeMovingAverage(dynamic_joint,dynamic_total)
-```
-
-```{r nrow2}
-nrow(relations)
-```
-
-
-# Calculating the trend for every year and every relation
-
-This step calculates the `trend` for every year and every relation, then labels each year as a surge or not (column `surge`). 
-
-- The input data table is modified in place for the sake of efficiency. It contains additional columns after executing the function, but the number of rows is not modified. 
-
-The `indicator` argument determines how the `trend` value is calculated:
-
-- `prob.rate` (default) is the relative rate in probability: $\frac{p_{y}-p_{y-1}}{p_{y-1}}$
-- `prob.diff` is the difference in probability: $p_{y}-p_{y-1}$
-- `prod.rate` is the relative rate in probability weighted by the log of the difference in frequency: $\frac{p_{y}-p_{y-1}}{p_{y-1}} \times \log(f_y-f_{y-1})$.
-
-Example:
-
-```{r trend}
-computeTrend(relations, indicator='prod.log')
-```
-
-- Note: there is no need to store the output data table since `relations` is modified by reference.
-
-# Detect surges
-
-For every relation, this step labels filters the years which have a finite `trend` value and labels the remaining rows as surge or not (column `surge` added). 
-
-A surge is defined as a year where the `trend` is an [upper outlier](https://en.wikipedia.org/wiki/Interquartile_range#Outliers), i.e. if the values is higher than the third quartile plus 1.5 times the inter quartile range (IQR). There are two options for calculating the outlier years:
-
-- Local outliers (default): every relation is processed independently, i.e. the Q3+1.5IQR threshold is calculated based on the trend values for the current relation only. In other words, the surge years are outliers for the current relation only.
-- Global outliers: the Q3+1.5IQR threshold is calculated based on the trend values for the whole dataset. In other words, the surge years are outliers globally.
-
-The local/global distinction has important consequences: 
-
-- With the local option, a relation which has low trend values for every year can have surges. This implies that more relations are found to have at least one surge.
-- Wuth the global option, only the relations with high trend values overall can have surges. Less relations are found to have surges, but there can also be more surges especially in relations in which the frequency increases fast over the years.
-
-```{r surges}
-local_surges <- detectSurges(relations, globalOutliers=FALSE)
-global_surges <- detectSurges(relations, globalOutliers=TRUE)
-```
-
-
-## Statistics local surges
-
-```{r}
-nrow(local_surges)
-```
-
-* Number of rows with a surge:
-
-```{r}
-nrow(local_surges[surge==TRUE,])
-```
-
-* Proportion of surges:
-
-```{r}
-colnames(local_surges)
-nrow(local_surges[surge==TRUE,])/nrow(local_surges)
-```
-
-* Relations with at least one surge:
-
-
-```{r}
-nrow(unique(local_surges[surge==TRUE,],by=key(local_surges)))
-```
-
-## Statistics global surges
-
-```{r}
-nrow(global_surges)
-```
-
-* Number of rows with a surge:
-
-```{r}
-nrow(global_surges[surge==TRUE,])
-```
-
-* Proportion of surges:
-
-```{r}
-nrow(global_surges[surge==TRUE,])/nrow(global_surges)
-```
-
-* Relations with at least one surge:
-
-
-```{r}
-nrow(unique(global_surges[surge==TRUE,],by=key(global_surges)))
-```
-
 
 # Adding PMI and conditional probabilities
-
 
 
 ```{r pmi}
@@ -184,13 +57,13 @@ selected_cols <- c('year','term.c1','term.c2','trend','prob.C1GivenC2',	'prob.C2
 
 ```{r table1}
 local_final <- local_final[order(-pmi),]
-selected <- head(local_final[,eval(selected_cols)],10)
+selected <- head(local_final[,..selected_cols],10)
 kable(selected)
 #kable(selected[order(year),])
 ```
 
 ```{r table2}
 global_final <- global_final[order(-pmi),]
-selected <- head(global_final[,eval(selected_cols)],10)
+selected <- head(global_final[,..selected_cols],10)
 #kable(selected[order(year),])
 ```

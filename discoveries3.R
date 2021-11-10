@@ -185,6 +185,33 @@ detectSurges <- function(trendDT, globalOutliers=FALSE) {
   d
 }
 
+
+computeAndSaveSurgesData <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED', outputFilePrefix='./', indivOrJoint='joint', ma_windows=c(1,3,5),indicators=c('prob.rate','prod.log'), outlier_methods=c('local','global')) {
+  dynamic_joint <- loadDynamicData(dir,indivOrJoint)
+  dynamic_total <- loadDynamicTotalFile(dir)
+  for (w in ma_windows) {
+    for (i in indicators) {
+      for (o in outlier_methods) {
+        f <- paste0(outputFilePrefix,paste(w,i,o,'tsv',sep='.'))
+        print(paste('processing and saving to', f))
+        relations <- computeMovingAverage(dynamic_joint,dynamic_total, window=w)
+        computeTrend(relations, indicator=i)
+        if (o == 'local') {
+          surges <- detectSurges(relations, globalOutliers=FALSE)
+        } else {
+          if (o == 'global') {
+            surges <- detectSurges(relations, globalOutliers=TRUE)
+          } else {
+            stop('Error: invalid value for method_outliers, must be "global" or "local".')
+          }
+        }
+        fwrite(surges[surge==TRUE,],f,sep='\t')
+      }
+    }
+  }
+}
+
+
 #
 # - 'oneSurgeByKey': 'no' for keeping all the surges, 'first' for picking the earliest, 'max' for picking the max trend
 #
