@@ -28,7 +28,7 @@ static_data <- loadStaticData(dataPathStatic)
 
 # Examples frequency across years
 
-## Generating examples
+## Generating random examples
 
 A single pair of concepts can be picked randomly as follows:
 
@@ -36,66 +36,33 @@ A single pair of concepts can be picked randomly as follows:
 relation<-pickRandomDynamic(dynamic_joint)
 ```
 
-In order to avoid cases with insufficient data, it is possible to filter out rows with less than some minimum frequency $m$ (the relation must have at least one year with a frequency higher than $m$):
+In order to avoid cases with insufficient data, it is possible to filter out rows with less than some minimum frequency $m$ (the relation must have at least one year with a frequency higher than $m$). It is also possible to specify the number of cases to pick:
 
 ```{r rnd2}
-relation<-pickRandomDynamic(dynamic_joint,minFreqYear = 200)
+three_relations<-pickRandomDynamic(dynamic_joint,n=3, minFreqYear = 200)
 ```
 
 ## Displaying a single relation with its concepts names
 
-```{r display}
-displaySinglePairData(relation,static_data,dynamic_total)
-```
-
-# BAD EXAMPLES
-
-
-TERRIBLE EXAMPLES!!
-
-## Example 1:
-
-```{r}
-concept1 <- 'D013577'
-concept2 <- 'D018482'
-d1 <- dynamic_joint[c1==concept1 & c2 == concept2,]
-term1 <- static_indiv[concept==concept1,term]
-term2 <- static_indiv[concept==concept2,term]
-print(term1)
-print(term2)
-```
-
-```{r}
-d1.ma <- computeMovingAverage(d1,dynamic_total, window=3)
-#ggplot(d1.ma,aes(year,ma))+geom_col()
-computeTrend(d1.ma, indicator='prod.log')
-```
-
-```{r}
-surgeYear <- d1.ma[trend==max(trend,na.rm = TRUE),year]
-ggplot(d1,aes(year,freq))+geom_col()+geom_vline(xintercept=surgeYear,linetype="dashed")
-```
-
-```{r}
-#ggplot(d1.ma, aes(year,trend))+geom_col()+xlim(min(d1.ma$year),max(d1.ma$year))
-```
-
-## Example 2:
-
-
-```{r}
-concept1 <- 'D009457'
-concept2 <- 'D010455'
-d2 <- dynamic_joint[c1==concept1 & c2 == concept2,]
-term1 <- static_indiv[concept==concept1,term]
-term2 <- static_indiv[concept==concept2,term]
-print(term1)
-print(term2)
+```{r display1}
+displaySeveralPairsData(relation,static_data,dynamic_total)
 ```
 
 
-```{r}
-ggplot(d2,aes(year,freq))+geom_col()
+```{r display2}
+displaySeveralPairsData(three_relations,static_data,dynamic_total)
 ```
 
+## Selecting the ALS cases presented in the paper
 
+```{r als}
+als <- filterConcepts(dynamic_joint, 'D000690')
+selectedALS <- filterConcepts(als,c('D051379','D000073885','D000870','D019782','D008875'))
+```
+
+```{r expl1}
+g<-displaySeveralPairsData(selectedALS,static_data,dynamic_total,excludeConceptsFromName = 'D000690',ncol=5)
+g
+# saving the graph as pdf:
+# ggsave('expl1.pdf',g)
+```

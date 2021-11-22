@@ -69,7 +69,7 @@ mergeStaticJointWithIndivData <- function(jointDT, indivDT, addTotalCol=NULL) {
   d0
 }
 
-pickRandomDynamic <- function(d, minFreqYear=0) {
+pickRandomDynamic <- function(d, n=1, minFreqYear=0) {
   if (minFreqYear>0) {
     dmin <- d[freq>=minFreqYear,]
     u <- unique(dmin,by=key(dmin))
@@ -77,11 +77,21 @@ pickRandomDynamic <- function(d, minFreqYear=0) {
     u <- unique(d,by=key(d))
   }
   print(paste('selecting among n pairs = ',nrow(u)))
-  n <- sample(nrow(u),1)
-  picked <- u[n,]
-  d[c1==picked$c1 & c2==picked$c2,]
+  r <- pickOneRandomDynamic(u,d)
+  if (n>1) {
+    for (i in seq(2,n)) {
+      r<-rbind(r,pickOneRandomDynamic(u,d))
+    }
+  }
+  setkeyv(r,key(d))
+  r
 }
 
+pickOneRandomDynamic <- function(uniq, data) {
+  n <- sample(nrow(uniq),1)
+  picked <- uniq[n,]
+  data[c1==picked$c1 & c2==picked$c2,]
+}
 
 filterConcepts <- function(d, concepts) {
   d[c1 %in% concepts | c2 %in% concepts,]
