@@ -1,0 +1,101 @@
+---
+title: "Mining Impactful Discoveries 1: Detecting Surges"
+author: "Erwan Moreau"
+date: "November 2021"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+library(knitr)
+library(rmarkdown)
+library(ggplot2)
+source('discoveries3.R')
+knitr::opts_chunk$set(echo = TRUE)
+# TODO temporary path
+dataPath <- '../data/21-extract-discoveries/recompute-with-ND-group/MED'
+dataPathStatic <- paste(dataPath,'across-all-years',sep='/')
+indivFileStatic <- 'indiv.min100.ND.terms'
+```
+
+```{r load}
+dynamic_joint <- loadDynamicData(dataPath,indivOrJoint = 'joint')
+# dynamic_indiv <- loadDynamicData(dataPath,indivOrJoint = 'indiv')
+dynamic_total <- loadDynamicTotalFile(dataPath)
+static_data <- loadStaticData(dataPathStatic)
+```
+
+
+# Examples frequency across years
+
+## Generating examples
+
+A single pair of concepts can be picked randomly as follows:
+
+```{r rnd1}
+relation<-pickRandomDynamic(dynamic_joint)
+```
+
+In order to avoid cases with insufficient data, it is possible to filter out rows with less than some minimum frequency $m$ (the relation must have at least one year with a frequency higher than $m$):
+
+```{r rnd2}
+relation<-pickRandomDynamic(dynamic_joint,minFreqYear = 200)
+```
+
+## Displaying a single relation with its concepts names
+
+```{r display}
+displaySinglePairData(relation,static_data,dynamic_total)
+```
+
+# BAD EXAMPLES
+
+
+TERRIBLE EXAMPLES!!
+
+## Example 1:
+
+```{r}
+concept1 <- 'D013577'
+concept2 <- 'D018482'
+d1 <- dynamic_joint[c1==concept1 & c2 == concept2,]
+term1 <- static_indiv[concept==concept1,term]
+term2 <- static_indiv[concept==concept2,term]
+print(term1)
+print(term2)
+```
+
+```{r}
+d1.ma <- computeMovingAverage(d1,dynamic_total, window=3)
+#ggplot(d1.ma,aes(year,ma))+geom_col()
+computeTrend(d1.ma, indicator='prod.log')
+```
+
+```{r}
+surgeYear <- d1.ma[trend==max(trend,na.rm = TRUE),year]
+ggplot(d1,aes(year,freq))+geom_col()+geom_vline(xintercept=surgeYear,linetype="dashed")
+```
+
+```{r}
+#ggplot(d1.ma, aes(year,trend))+geom_col()+xlim(min(d1.ma$year),max(d1.ma$year))
+```
+
+## Example 2:
+
+
+```{r}
+concept1 <- 'D009457'
+concept2 <- 'D010455'
+d2 <- dynamic_joint[c1==concept1 & c2 == concept2,]
+term1 <- static_indiv[concept==concept1,term]
+term2 <- static_indiv[concept==concept2,term]
+print(term1)
+print(term2)
+```
+
+
+```{r}
+ggplot(d2,aes(year,freq))+geom_col()
+```
+
+

@@ -13,8 +13,9 @@ library(ggplot2)
 source('discoveries3.R')
 knitr::opts_chunk$set(echo = TRUE)
 # TODO temporary path
-dataPath <- './1.prod.log.global.tsv'
+dataPath <- '../data/21-extract-discoveries/recompute-with-ND-group/MED'
 dataPathStatic <- paste(dataPath,'across-all-years',sep='/')
+surgesPath <- './1.prob.rate.local.tsv'
 ```
 
 
@@ -26,7 +27,9 @@ TODO: This part assumes that the data from the first step has been computed and 
 ## Surges data
 
 ```{r loading surges}
-all_surges <- fread(surgesDataPath)
+all_surges <- fread(surgesPath)
+setkey(all_surges,c1,c2)
+nrow(all_surges)
 ```
 
 ## Static data
@@ -34,21 +37,21 @@ all_surges <- fread(surgesDataPath)
 This data table will contain the global frequency statistics across time
 
 ```{r loading static}
-static_joint <- loadStaticData(dataPathStatic)
+static_data <- loadStaticData(dataPathStatic)
 ```
 
 # Refining target surges
 
 ```{r max surges}
 surges <- filterSurges(all_surges,oneSurgeByKey='max',minTrend=2)
+nrow(surges)
 ```
 
 # Adding PMI and conditional probabilities
 
 
 ```{r pmi}
-local_final <- addStaticAssociationToRelations(local_surges[surge==TRUE,], static_data, filterMeasures = c('pmi','npmi'))
-global_final <- addStaticAssociationToRelations(global_surges[surge==TRUE,], static_data, filterMeasures = c('pmi','npmi'))
+final <- addStaticAssociationToRelations(surges, static_data, filterMeasures = c('pmi','npmi'))
 ```
 
 ```{r}
@@ -56,14 +59,9 @@ selected_cols <- c('year','term.c1','term.c2','trend','prob.C1GivenC2',	'prob.C2
 ```
 
 ```{r table1}
-local_final <- local_final[order(-pmi),]
-selected <- head(local_final[,..selected_cols],10)
+final <- final[order(-pmi),]
+selected <- head(final[,..selected_cols],10)
 kable(selected)
-#kable(selected[order(year),])
+kable(selected[order(year),])
 ```
 
-```{r table2}
-global_final <- global_final[order(-pmi),]
-selected <- head(global_final[,..selected_cols],10)
-#kable(selected[order(year),])
-```

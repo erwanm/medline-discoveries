@@ -69,6 +69,44 @@ mergeStaticJointWithIndivData <- function(jointDT, indivDT, addTotalCol=NULL) {
   d0
 }
 
+pickRandomDynamic <- function(d, minFreqYear=0) {
+  if (minFreqYear>0) {
+    dmin <- d[freq>=minFreqYear,]
+    u <- unique(dmin,by=key(dmin))
+  } else {
+    u <- unique(d,by=key(d))
+  }
+  print(paste('selecting among n pairs = ',nrow(u)))
+  n <- sample(nrow(u),1)
+  picked <- u[n,]
+  d[c1==picked$c1 & c2==picked$c2,]
+}
+
+
+filterConcepts <- function(d, concepts) {
+  d[c1 %in% concepts | c2 %in% concepts,]
+}
+
+
+# pairData <- pickRandomDynamic(....)
+# staticData <- loadStaticData(....)
+displaySeveralPairsData <- function(pairsData, staticData, totalsDT,window=5,yearRange=c(1988,2018),excludeConceptsFromName=NULL,ncol=3) {
+  maDT <- computeMovingAverage(pairsData,totalsDT,window=window)
+  d <- merge(maDT, staticData,by=c('c1','c2'))
+  d[,n1 := paste0(term.c1,' (',c1,")"),]
+  d[,n2 := paste0(term.c2,' (',c2,")"),]
+  d[,fulldescr := paste0(n1,' - ',n2),]
+  print(unique(d[,fulldescr]))
+  if (is.null(excludeConceptsFromName)) {
+    d[,relation := paste0(term.c1,' - ',term.c2),]
+  } else {
+    d[,tmp1 := if (c1 %in% excludeConceptsFromName) "" else term.c1,by=c1]
+    d[,tmp2 := if (c2 %in% excludeConceptsFromName) "" else term.c2,by=c2]
+    d[,relation := paste0(tmp1,tmp2),]
+  }
+  ggplot(d,aes(year,freq))+geom_col(alpha=.4)+geom_line(aes(year,ma))+xlim(yearRange)+facet_wrap(.~relation,scales='free_y',ncol=ncol)
+}
+
 
 # moving average on a vector 'x' with window size 'window' (centered).
 ma <- function(x,n=5,padWithNA=FALSE) {
@@ -221,12 +259,13 @@ filterSurges <- function(surgesDT, oneSurgeByKey='no',minTrend=-Inf) {
   d <- surgesDT[surge==TRUE & trend>=minTrend,]
   if (oneSurgeByKey != 'no') {
     if (oneSurgeByKey == 'max') {
-      d<-d[trend==max(trend),,by=key(d)]
+      d<-d[,.SD[trend==max(trend),],by=key(d)]
     }
     if (oneSurgeByKey == 'first') {
-      d<-d[year==min(year),,by=key(d)]
+      d<-d[,.SD[year==min(year),],by=key(d)]
     }
   }
+  d
 }
 
 
