@@ -66,3 +66,15 @@ g
 # saving the graph as pdf:
 # ggsave('expl1.pdf',g)
 ```
+
+# Example indicators and surges
+
+```{r expl2}
+parkinson <- filterConcepts(dynamic_joint, 'D010300')
+case <- filterConcepts(parkinson, 'D013378')
+g <- displaySurges(case,static_data,dynamic_total,windows=c(1,3), indicators=c('prob.rate', 'prob.diff','prod.log'),withTitle = TRUE)
+g
+# saving the graph as pdf:
+# ggsave('expl1.pdf',g)
+```
+
