@@ -293,12 +293,16 @@ binaryMI <- function(pA, pB, pA_B, normalized=FALSE) {
 default_measures = c('scp', 'pmi', 'npmi', 'mi', 'nmi', 'pmi2', 'pmi3')
 
 #
-calculateAssociation <- function(dt, filterMeasures=default_measures) { 
-  dt[,prob.joint := freq.joint / total,]
-  dt[,prob.c1 := freq.c1 / total,]
-  dt[,prob.c2 := freq.c2 / total,]
-  dt[,prob.C1GivenC2 := freq.joint / freq.c2,]
-  dt[,prob.C2GivenC1 := freq.joint / freq.c1,]
+calculateAssociation <- function(dt, filterMeasures=default_measures,col1='freq.c1',col2='freq.c2',colJoint='freq.joint',colTotal='total') { 
+  v1 <- as.name(col1)
+  v2 <- as.name(col2)
+  joint<-as.name(colJoint)
+  total <- as.name(colTotal)
+  dt[,prob.joint := eval(joint) / eval(total),]
+  dt[,prob.c1 := eval(v1) / eval(total),]
+  dt[,prob.c2 := eval(v2) / eval(total),]
+  dt[,prob.C1GivenC2 := eval(joint) / eval(v2),]
+  dt[,prob.C2GivenC1 := eval(joint) / eval(v1),]
   dt[,pmi := log2( prob.joint / (prob.c1 * prob.c2) ),]
   if ('scp' %in% filterMeasures) {
     dt[, scp := prob.joint^2 / (prob.c1*prob.c2),]
@@ -340,6 +344,19 @@ calculateAssociation <- function(dt, filterMeasures=default_measures) {
 addStaticAssociationToRelations <- function(relationsDT, staticData, filterMeasures = c('pmi','npmi')) {
   d <- merge(relationsDT, staticData, by=c('c1','c2'),suffixes=c('.dynamic','.static'))
   calculateAssociation(d,filterMeasures=filterMeasures)
+  d
+}
+
+
+
+#
+# relationsDT <- computeMovingAverage(dynamic_joint,dynamic_total, window=5)
+# indivDT <- computeMovingAverage(dynamic_indiv,dynamic_total, window=5)
+# 
+addDynamicAssociationToRelations <- function(relationsDT, indivDT, filterMeasures = c('pmi','npmi')) {
+  d <- merge(relationsDT, indivDT, by.x=c('year','ma.total','c2'),by.y=c('year','ma.total','concept'), suffixes=c('.joint',''))
+  d <- merge(d, indivDT, by.x=c('year','ma.total','c1'), by.y=c('year','ma.total','concept'), suffixes=c('.c2','.c1'))
+  calculateAssociation(d,filterMeasures=filterMeasures,col1='ma.c1',col2='ma.c2',colJoint = 'ma.joint',colTotal = 'ma.total')
   d
 }
 
