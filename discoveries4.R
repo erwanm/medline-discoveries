@@ -144,7 +144,7 @@ selectTotalYears <- function(totalsDT, minY,maxY) {
 # - The key of mainDT must have been set.
 #
 computeMovingAverage <- function(mainDT, totalsDT, window=1) {
-  mainDT <- fillIncompleteYears(mainDT,idCols=key(mainDT),padBeforeStartYear=ceiling((window-1)/2)+1,filterMinYear=min(mainDT$year))
+  mainDT <- fillIncompleteYears(mainDT,idCols=key(mainDT),padBeforeStartYear=ceiling((window-1)/2)*2+1,filterMinYear=min(mainDT$year))
   totalsDT[,ma.total := ma(total, window, padWithNA = TRUE),]
   mainDT[,c('ma','ma.total') := list(ma(freq, window, padWithNA = TRUE), selectTotalYears(totalsDT,min(year),max(year))),by=key(mainDT)]
   mainDT[,ma := ma(freq, window, padWithNA = TRUE),by=key(mainDT)]
@@ -167,7 +167,7 @@ calculateProdLog <- function(x,y) {
 #
 # d <- computeMovingAverage(...)
 #
-computeTrend <- function(d, indicator='prob.rate') {
+computeTrendBAK <- function(d, indicator='prob.rate') {
   d[,prob:=ma/ma.total,]
   d[, c('ma.prev', 'prob.prev') := list( c(NA,head(ma,-1)), c(NA,head(prob,-1)) ), by=key(d)]
   if ('prob.rate' == indicator) {
@@ -182,6 +182,26 @@ computeTrend <- function(d, indicator='prob.rate') {
     d[, trend := calculateProdLog(probRate, freqDiff),]
   }
   d
+}
+
+# - input as data.table, modified by reference
+# if using ma freq as value, must pre-calculate prob:   d[,prob:=ma/ma.total,]
+#
+computeTrend <- function(d, indicator='rate',valueCol='prob') {
+  if (! indicator %in% c('rate','diff','product')) {
+    stop(paste('Error: invalid indicator "',indicator,'"'))
+  }
+  val<-as.name(valueCol)
+  d[, prev.value := c(NA,head(eval(val),-1)), by=key(d)]
+  if ('rate' == indicator) {
+    d[, trend := (eval(val)-prev.value)/prev.value,]
+  }
+  if ('diff' == indicator) {
+    d[, trend := eval(val)-prev.value,]
+  }
+  if ('product' == indicator) {
+    d[, trend := (eval(val)-prev.value)^2/prev.value,]
+  }
 }
 
 
@@ -308,16 +328,20 @@ calculateAssociation <- function(dt, filterMeasures=default_measures,col1='freq.
     dt[, scp := prob.joint^2 / (prob.c1*prob.c2),]
   }
   if ('npmi' %in% filterMeasures) {
-    dt[,npmi := pmi / log2(prob.joint),]
+    dt[,npmi := pmi / -log2(prob.joint),]
   }
-  if ('nmi' %in% filterMeasures) {
-    l <- binaryMI(dt[,prob.c1], dt[,prob.c2], dt[,prob.joint], normalized=TRUE)
-    dt[,mi := l$mi,]
-    dt[,nmi := l$nmi,]
-  } else {
+  if ('nmi' %in% filterMeasures | 'mi' %in% filterMeasures) {
+    nas <- is.na(dt[,prob.c1]) | is.na(dt[,prob.c2]) |  is.na(dt[,prob.joint])
+    l <- binaryMI(dt[!nas,prob.c1], dt[!nas,prob.c2], dt[!nas,prob.joint], normalized=TRUE)
+    if ('nmi' %in% filterMeasures) {
+      res <- rep(NA,nrow(dt))
+      res[!nas] <- l$nmi
+      dt[,nmi := res,]
+    }
     if ('mi' %in% filterMeasures) {
-      dt[,mi := l$mi,]
-      integratedRelationsDF$mi <- binaryMI(dt[,prob.c1], dt[,prob.c2], dt[,prob.joint])
+      res <- rep(NA,nrow(dt))
+      res[!nas] <- l$mi
+      dt[,mi := res,]
     }
   }
   if ('pmi2' %in% filterMeasures) {
@@ -353,10 +377,21 @@ addStaticAssociationToRelations <- function(relationsDT, staticData, filterMeasu
 # relationsDT <- computeMovingAverage(dynamic_joint,dynamic_total, window=5)
 # indivDT <- computeMovingAverage(dynamic_indiv,dynamic_total, window=5)
 # 
-addDynamicAssociationToRelations <- function(relationsDT, indivDT, filterMeasures = c('pmi','npmi')) {
+addDynamicAssociationToRelations1 <- function(relationsDT, indivDT, filterMeasures = c('pmi','npmi')) {
   d <- merge(relationsDT, indivDT, by.x=c('year','ma.total','c2'),by.y=c('year','ma.total','concept'), suffixes=c('.joint',''))
   d <- merge(d, indivDT, by.x=c('year','ma.total','c1'), by.y=c('year','ma.total','concept'), suffixes=c('.c2','.c1'))
+  setkey(d,c1,c2)
   calculateAssociation(d,filterMeasures=filterMeasures,col1='ma.c1',col2='ma.c2',colJoint = 'ma.joint',colTotal = 'ma.total')
+  d
+}
+
+
+addDynamicAssociationToRelations2 <- function(relationsDT, indivDT, totalDT, filterMeasures = c('pmi','npmi')) {
+  d <- merge(relationsDT, indivDT, by.x=c('year','c2'),by.y=c('year','concept'), suffixes=c('.joint',''))
+  d <- merge(d, indivDT, by.x=c('year','c1'), by.y=c('year','concept'), suffixes=c('.c2','.c1'))
+  d <- merge(d, totalDT, by='year')
+  setkey(d,c1,c2)
+  calculateAssociation(d,filterMeasures=filterMeasures,col1='freq.c1',col2='freq.c2',colJoint = 'freq.joint',colTotal = 'total')
   d
 }
 
@@ -378,6 +413,27 @@ displaySeveralPairsData <- function(pairsData, staticData, totalsDT,window=5,yea
     d[,relation := paste0(tmp1,tmp2),]
   }
   ggplot(d,aes(year,freq))+geom_col(alpha=.4)+geom_line(aes(year,ma))+xlim(yearRange)+facet_wrap(.~relation,scales='free_y',ncol=ncol)
+}
+
+
+displayMultiTrend <- function(pairsData,indivData, totals, indicator='rate',window=3,valueCol='prob',yearRange=c(1988,2018),excludeConceptsFromName=NULL) {
+  d <- computeMovingAverage(pairsData,totals, window=window)
+  if (valueCol == 'prob') {
+    d[,prob:=ma/ma.total]
+    computeTrend(d,indicator)
+  } else {
+    indiv <- computeMovingAverage(indivData,totals, window=window)
+    d<-addDynamicAssociationToRelations(d,indiv)
+    computeTrend(d,indicator,valueCol)
+  }
+  raw <- d[,c('year','c1','c2')]
+  raw[,var:=valueCol]
+  raw[,value:=d[,eval(as.name(valueCol))]]
+  trend <- d[,c('year','c1','c2')]
+  trend[,var:='trend']
+  trend[,value:=d[,trend]]
+  r<-rbind(raw,trend)
+  ggplot(r,aes(year,value))+geom_col()+facet_grid(var~paste(c1,c2),scales='free_y')+xlim(yearRange)
 }
 
 displaySurges <- function(pairsData, staticData, totalsDT,windows=c(1,3,5), indicators=c('prob.rate', 'prob.diff','prod.log'),withTitle=TRUE) {
