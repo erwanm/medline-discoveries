@@ -2,7 +2,10 @@
 title: "Mining Impactful Discoveries 1: Detecting Surges"
 author: "Erwan Moreau"
 date: "November 2021"
-output: html_document
+output:
+ html_document:
+    fig_width: 10
+    fig_height: 4
 ---
 
 
@@ -10,7 +13,7 @@ output: html_document
 library(knitr)
 library(rmarkdown)
 library(ggplot2)
-source('discoveries3.R')
+source('discoveries4.R')
 knitr::opts_chunk$set(echo = TRUE)
 # TODO temporary path
 dataPath <- '../data/21-extract-discoveries/recompute-with-ND-group/MED'
@@ -20,7 +23,7 @@ indivFileStatic <- 'indiv.min100.ND.terms'
 
 ```{r load}
 dynamic_joint <- loadDynamicData(dataPath,indivOrJoint = 'joint')
-# dynamic_indiv <- loadDynamicData(dataPath,indivOrJoint = 'indiv')
+dynamic_indiv <- loadDynamicData(dataPath,indivOrJoint = 'indiv')
 dynamic_total <- loadDynamicTotalFile(dataPath)
 static_data <- loadStaticData(dataPathStatic)
 ```
@@ -67,14 +70,49 @@ g
 # ggsave('expl1.pdf',g)
 ```
 
+
+# Trend parameters
+
+## Using simple frequency, indicator 'rate'
+
+```{r trend1}
+displayMultiTrend(selectedALS,dynamic_indiv,dynamic_total,static_data,indicator='rate',valueCol = 'prob',excludeConceptsFromName = 'D000690')
+```
+
+## Using NMI, indicator 'rate'
+
+```{r trend2}
+displayMultiTrend(selectedALS,dynamic_indiv,dynamic_total,static_data,indicator='rate',valueCol = 'nmi',excludeConceptsFromName = 'D000690')
+```
+
+## Using NMI, indicator 'diff'
+
+```{r trend3}
+displayMultiTrend(selectedALS,dynamic_indiv,dynamic_total,static_data,indicator='diff',valueCol = 'nmi',excludeConceptsFromName = 'D000690')
+```
+
+
+
 # Example indicators and surges
 
-```{r expl2}
+## Using simple frequency
+
+```{r surges1}
 parkinson <- filterConcepts(dynamic_joint, 'D010300')
 case <- filterConcepts(parkinson, 'D013378')
-g <- displaySurges(case,static_data,dynamic_total,windows=c(1,3), indicators=c('prob.rate', 'prob.diff','prod.log'),withTitle = TRUE)
+g <- displaySurges(case,dynamic_indiv,dynamic_total,static_data,windows=c(1,3), indicators=c('rate','diff'),withTitle = TRUE)
 g
 # saving the graph as pdf:
 # ggsave('expl1.pdf',g)
 ```
 
+## Using NMI
+
+```{r surges2}
+parkinson <- filterConcepts(dynamic_joint, 'D010300')
+case <- filterConcepts(parkinson, 'D013378')
+g <- displaySurges(case,dynamic_indiv,dynamic_total,static_data,valueCol='nmi',windows=c(1,3,5), indicators=c('rate','diff'),withTitle = TRUE)
+g
+# saving the graph as pdf:
+# ggsave('expl1.pdf',g)
+```
