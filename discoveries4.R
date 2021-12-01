@@ -157,11 +157,11 @@ computeMovingAverage <- function(mainDT, totalsDT, window=1) {
 # - possible indicators: 'rate' or 'diff'
 # if using ma freq as value, must pre-calculate prob:   d[,prob:=ma/ma.total,]
 #
-computeTrend <- function(d, indicator='rate',valueCol='prob') {
-  if (! indicator %in% c('rate','diff','product')) {
+computeTrend <- function(d, indicator='rate',measure='prob.joint') {
+  if (! indicator %in% c('rate','diff')) {
     stop(paste('Error: invalid indicator "',indicator,'"'))
   }
-  val<-as.name(valueCol)
+  val<-as.name(measure)
   d[, prev.value := c(NA,head(eval(val),-1)), by=key(d)]
   if ('rate' == indicator) {
     d[, trend := (eval(val)-prev.value)/prev.value,]
@@ -280,7 +280,7 @@ binaryMI <- function(pA, pB, pA_B, normalized=FALSE) {
   }
 }
 
-default_measures = c('scp', 'pmi', 'npmi', 'mi', 'nmi', 'pmi2', 'pmi3')
+default_measures = c('prob.joint','scp', 'pmi', 'npmi', 'mi', 'nmi', 'pmi2', 'pmi3')
 
 #
 calculateAssociation <- function(dt, filterMeasures=default_measures,col1='freq.c1',col2='freq.c2',colJoint='freq.joint',colTotal='total') { 
@@ -347,11 +347,11 @@ addStaticAssociationToRelations <- function(relationsDT, staticData, filterMeasu
 # relationsDT <- computeMovingAverage(dynamic_joint,dynamic_total, window=5)
 # indivDT <- computeMovingAverage(dynamic_indiv,dynamic_total, window=5)
 # 
-addDynamicAssociationToRelations <- function(relationsDT, indivDT, filterMeasures = c('pmi','npmi')) {
+addDynamicAssociationToRelations <- function(relationsDT, indivDT, measures = 'prob.joint') {
   d <- merge(relationsDT, indivDT, by.x=c('year','ma.total','c2'),by.y=c('year','ma.total','concept'), suffixes=c('.joint',''))
   d <- merge(d, indivDT, by.x=c('year','ma.total','c1'), by.y=c('year','ma.total','concept'), suffixes=c('.c2','.c1'))
   setkey(d,c1,c2)
-  calculateAssociation(d,filterMeasures=filterMeasures,col1='ma.c1',col2='ma.c2',colJoint = 'ma.joint',colTotal = 'ma.total')
+  calculateAssociation(d,filterMeasures=measures,col1='ma.c1',col2='ma.c2',colJoint = 'ma.joint',colTotal = 'ma.total')
   d
 }
 
@@ -383,21 +383,32 @@ displaySeveralPairsData <- function(pairsData, staticData, totalsDT,window=5,yea
   ggplot(d,aes(year,freq))+geom_col(alpha=.4)+geom_line(aes(year,ma))+xlim(yearRange)+facet_wrap(.~relation,scales='free_y',ncol=ncol)
 }
 
-
-displayMultiTrend <- function(pairsData,indivData, totals, staticData, indicator='rate',window=3,valueCol='prob',yearRange=c(1988,2018),excludeConceptsFromName=NULL) {
-  maDT <- computeMovingAverage(pairsData,totals, window=window)
-  d <- addRelationName(maDT, staticData, excludeConceptsFromName)
-  if (valueCol == 'prob') {
-    d[,prob:=ma/ma.total]
-    computeTrend(d,indicator)
-  } else {
-    indiv <- computeMovingAverage(indivData,totals, window=window)
-    d<-addDynamicAssociationToRelations(d,indiv,filterMeasures = valueCol)
-    computeTrend(d,indicator,valueCol)
+displayMultiMeasure <- function(pairsData,indivData, totals, staticData,windows=c(1,3,5),measures=c('prob.joint','pmi'),yearRange=c(1988,2018),excludeConceptsFromName=NULL) {
+  l <- list()
+  for (window in windows) {
+    ma.joint <- computeMovingAverage(pairsData,totals, window=window)
+    ma.indiv <- computeMovingAverage(indivData,totals, window=window)
+    d <- addRelationName(ma.joint, staticData, excludeConceptsFromName)
+    d<-addDynamicAssociationToRelations(d,ma.indiv,measures = measures)
+    d[,window:=window]
+    l[[length(l)+1]]<-d
   }
+  r<-rbindlist(l)
+  cols <- c('year','relation','window',measures)
+  r <- melt(r[,..cols],id.vars = c('year','relation','window'),variable.name='measure')
+  ggplot(r,aes(year,value,alpha=as.factor(window)))+geom_line()+facet_grid(measure ~ relation,scales='free_y')+xlim(yearRange)+ scale_alpha_ordinal(range = c(0.3, 1))
+}
+
+
+displayMultiTrend <- function(pairsData,indivData, totals, staticData, indicator='rate',window=3,measure='prob.joint',yearRange=c(1988,2018),excludeConceptsFromName=NULL) {
+  ma.joint <- computeMovingAverage(pairsData,totals, window=window)
+  ma.indiv <- computeMovingAverage(indivData,totals, window=window)
+  d <- addRelationName(ma.joint, staticData, excludeConceptsFromName)
+  d<-addDynamicAssociationToRelations(d,ma.indiv,measures = measure)
+  computeTrend(d,indicator,measure)
   raw <- d[,c('year','relation')]
-  raw[,var:=valueCol]
-  raw[,value:=d[,eval(as.name(valueCol))]]
+  raw[,var:=measure]
+  raw[,value:=d[,eval(as.name(measure))]]
   trend <- d[,c('year','relation')]
   trend[,var:='trend']
   trend[,value:=d[,trend]]
@@ -405,19 +416,22 @@ displayMultiTrend <- function(pairsData,indivData, totals, staticData, indicator
   ggplot(r,aes(year,value))+geom_col()+facet_grid(var~relation,scales='free_y')+xlim(yearRange)
 }
 
-displaySurges <- function(pairsData, indivData, totalsDT, staticData,valueCol='prob',windows=c(1,3,5), indicators=c('diff', 'rate','product'),withTitle=TRUE) {
+
+#
+# single relation
+#
+displaySurges <- function(pairsData, indivData, totals, staticData,valueCol='prob.joint',windows=c(1,3,5), indicators=c('diff', 'rate'),withTitle=TRUE,excludeConceptsFromName=NULL) {
+  if (nrow(unique(pairsData,by=key(pairsData)))>1) {
+    stop('Error: "displaySuges" cannot handle more than one relation')
+  }
   l <- list()
   for (window in windows) {
     for (indicator in indicators) {
-      d <- computeMovingAverage(pairsData,totalsDT,window=window)
-      if (valueCol == 'prob') {
-        d[,prob:=ma/ma.total]
-        computeTrend(d,indicator)
-      } else {
-        indiv <- computeMovingAverage(indivData,totalsDT, window=window)
-        d<-addDynamicAssociationToRelations(d,indiv,filterMeasures = valueCol)
-        computeTrend(d,indicator,valueCol)
-      }
+      ma.joint <- computeMovingAverage(pairsData,totals, window=window)
+      ma.indiv <- computeMovingAverage(indivData,totals, window=window)
+      d <- addRelationName(ma.joint, staticData, excludeConceptsFromName)
+      d<-addDynamicAssociationToRelations(d,ma.indiv,measures = valueCol)
+      computeTrend(d,indicator,valueCol)
       surges <- detectSurges(d, globalOutliers=FALSE)
       surges[,indicator:=indicator,]
       surges[,window:=window,]
@@ -427,12 +441,13 @@ displaySurges <- function(pairsData, indivData, totalsDT, staticData,valueCol='p
   r<-rbindlist(l)
   g <- ggplot(r,aes_string('year',valueCol,fill='surge'))+geom_col()+facet_grid(window~indicator)+scale_fill_manual(values = c("#AAAAAA","#FF766D"))+ theme(legend.position="none")
   if (withTitle) {
-    d <- merge(pairsData, staticData,by=c('c1','c2'))
-    d[,n1 := paste0(term.c1,' (',c1,")"),]
-    d[,n2 := paste0(term.c2,' (',c2,")"),]
-    d[,fulldescr := paste0(n1,' - ',n2),]
-    name <- unique(d[,fulldescr])
-    print(name)
+#    d <- merge(pairsData, staticData,by=c('c1','c2'))
+#    d[,n1 := paste0(term.c1,' (',c1,")"),]
+#    d[,n2 := paste0(term.c2,' (',c2,")"),]
+#    d[,fulldescr := paste0(n1,' - ',n2),]
+#    name <- unique(d[,fulldescr])
+#    print(name)
+    name <- d[1,relation]
     g <- g +ggtitle(name)
   }
   g
