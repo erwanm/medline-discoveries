@@ -31,23 +31,29 @@ TODO
 ```{r load dynamic}
 dynamic_joint <- loadDynamicData(dataPath,indivOrJoint = 'joint')
 # TEMPORARY FOR TESTS
-dynamic_joint <- head(dynamic_joint,20000)
+dynamic_joint <- head(dynamic_joint,200000)
 dynamic_indiv <- loadDynamicData(dataPath,indivOrJoint = 'indiv')
 dynamic_total <- loadDynamicTotalFile(dataPath)
 ```
 
 ## Statistics
 
-* Number of rows, i.e. pairs (relation,year):
+* Number of concepts:
 
-```{r nrow1}
-nrow(dynamic_joint)
+```{r}
+nrow(unique(dynamic_indiv,by=key(dynamic_indiv)))
 ```
 
 * Number of relations:
 
 ```{r}
 nrow(unique(dynamic_joint,by=key(dynamic_joint)))
+```
+
+* Number of rows, i.e. pairs (relation,year):
+
+```{r nrow1}
+nrow(dynamic_joint)
 ```
 
 
@@ -85,7 +91,7 @@ Available measures:
 * `pmi2` and `pmi3`
 
 ```{r measures}
-rel.mesures<-addDynamicAssociationToRelations(relations.ma,indiv.ma,measures = c('prob.joint','pmi','npmi','mi', 'nmi'))
+rel.mesures<-addDynamicAssociationToRelations(relations.ma,indiv.ma,measures = c('prob.joint','pmi','nmi'))
 ```
 
 # Calculating the trend for every year and every relation
@@ -114,63 +120,34 @@ A surge is defined as a year where the `trend` is an [upper outlier](https://en.
 
 - Local outliers (default): every relation is processed independently, i.e. the Q3+1.5IQR threshold is calculated based on the trend values for the current relation only. In other words, the surge years are outliers for the current relation only.
 - Global outliers: the Q3+1.5IQR threshold is calculated based on the trend values for the whole dataset. In other words, the surge years are outliers globally.
+- The input data table is modified in place for the sake of efficiency. 
 
 
 ```{r surges}
-local_surges <- detectSurges(rel.mesures, globalOutliers=FALSE)
-global_surges <- detectSurges(rel.mesures, globalOutliers=TRUE)
+detectSurges(rel.mesures, globalOutliers=FALSE)
 ```
 
 
 ## Statistics local surges
 
+
 ```{r}
-nrow(local_surges)
+local_stats <- countSurgesByRelation(local_surges)
+kable(local_stats[n.surges<=10,])
 ```
 
-* Number of rows with a surge:
+### Statistics global surges
 
 ```{r}
-nrow(local_surges[surge==TRUE,])
+global_stats <- countSurgesByRelation(global_surges)
+kable(global_stats[n.surges<=10,])
 ```
 
-* Proportion of surges:
-
 ```{r}
-colnames(local_surges)
-nrow(local_surges[surge==TRUE,])/nrow(local_surges)
-```
-
-* Relations with at least one surge:
-
-
-```{r}
-nrow(unique(local_surges[surge==TRUE,],by=key(local_surges)))
-```
-
-## Statistics global surges
-
-```{r}
-nrow(global_surges)
-```
-
-* Number of rows with a surge:
-
-```{r}
-nrow(global_surges[surge==TRUE,])
-```
-
-* Proportion of surges:
-
-```{r}
-nrow(global_surges[surge==TRUE,])/nrow(global_surges)
-```
-
-* Relations with at least one surge:
-
-
-```{r}
-nrow(unique(global_surges[surge==TRUE,],by=key(global_surges)))
+local_stats[,surge.type:='local']
+global_stats[,surge.type:='global']
+full_stats <- rbind(local_stats,global_stats)
+ggplot(full_stats,aes(n.surges,prop))+geom_col()+facet_grid(.~surge.type)
 ```
 
 

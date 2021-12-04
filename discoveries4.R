@@ -144,7 +144,7 @@ selectTotalYears <- function(totalsDT, minY,maxY) {
 # - The key of mainDT must have been set.
 #
 computeMovingAverage <- function(mainDT, totalsDT, window=1) {
-  mainDT <- fillIncompleteYears(mainDT,idCols=key(mainDT),padBeforeStartYear=ceiling((window-1)/2)*2+1,filterMinYear=min(mainDT$year))
+  mainDT <- fillIncompleteYears(mainDT,idCols=key(mainDT),padBeforeStartYear=ceiling((window-1)/2)*2+1,filterMinYear=min(totalsDT$year))
   totalsDT[,ma.total := ma(total, window, padWithNA = TRUE),]
   mainDT[,c('ma','ma.total') := list(ma(freq, window, padWithNA = TRUE), selectTotalYears(totalsDT,min(year),max(year))),by=key(mainDT)]
   mainDT[,ma := ma(freq, window, padWithNA = TRUE),by=key(mainDT)]
@@ -200,9 +200,9 @@ calculateThresholdTopOutliers <- function(v0, discardNegativeValues=FALSE) {
 detectSurges <- function(trendDT, globalOutliers=FALSE, discardNegativeTrend=FALSE) {
   d <- trendDT
   if (globalOutliers) {
-    d[, surge := is.finite(trend) & trend>=calculateThresholdTopOutliers(trend, discardNegativeValues=discardNegativeTrend),]
+    d[, surge := (is.finite(trend) & (trend>=calculateThresholdTopOutliers(trend, discardNegativeValues=discardNegativeTrend))),]
   } else {
-    d[, surge := is.finite(trend) & trend>=calculateThresholdTopOutliers(trend, discardNegativeValues=discardNegativeTrend), by=key(d)]
+    d[, surge := (is.finite(trend) & (trend>=calculateThresholdTopOutliers(trend, discardNegativeValues=discardNegativeTrend))), by=key(d)]
   }
   d
 }
@@ -454,3 +454,9 @@ displaySurges <- function(pairsData, indivData, totals, staticData,valueCol='pro
 }
 
 
+countSurgesByRelation <- function(surgesDT) {
+  surges.by.key <- surgesDT[,.(n.surges=length(surge[surge])),by=key(surgesDT)]
+  r<-surges.by.key[,.(n=.N,prop=.N/nrow(surges.by.key)),by=n.surges]
+  setorder(r,n.surges)
+  r
+}
