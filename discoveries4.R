@@ -77,20 +77,10 @@ pickRandomDynamic <- function(d, n=1, minFreqYear=0) {
     u <- unique(d,by=key(d))
   }
   print(paste('selecting among n pairs = ',nrow(u)))
-  r <- pickOneRandomDynamic(u,d)
-  if (n>1) {
-    for (i in seq(2,n)) {
-      r<-rbind(r,pickOneRandomDynamic(u,d))
-    }
-  }
-  setkeyv(r,key(d))
-  r
-}
-
-pickOneRandomDynamic <- function(uniq, data) {
-  n <- sample(nrow(uniq),1)
-  picked <- uniq[n,]
-  data[c1==picked$c1 & c2==picked$c2,]
+  indexes <- sample(nrow(u),n)
+  key <- key(d)
+  picked <- u[indexes,..key]
+  merge(d,picked)
 }
 
 filterConcepts <- function(d, concepts) {
@@ -118,6 +108,7 @@ ma <- function(x,n=5,padWithNA=FALSE) {
 # from https://stackoverflow.com/questions/69815130/data-table-is-it-possible-to-merge-sd-and-return-a-new-sub-data-table-by-gro/
 #
 fillIncompleteYears <- function(dt,idCols=c('concept'),padBeforeStartYear=0,filterMinYear=NA) {
+  print(paste('DEBUG fillIncompleteYears:',min(dt$year),max(dt$year),padBeforeStartYear,filterMinYear))
   # creates a sequence of years from startYear - padBeforeStartYear to endYear
   res<- dt[ dt[, .(year = seq(min(year)-padBeforeStartYear, max(year))), by = idCols],
            on = c(idCols,'year'),
@@ -146,6 +137,9 @@ selectTotalYears <- function(totalsDT, minY,maxY) {
 computeMovingAverage <- function(mainDT, totalsDT, window=1) {
   mainDT <- fillIncompleteYears(mainDT,idCols=key(mainDT),padBeforeStartYear=ceiling((window-1)/2)*2+1,filterMinYear=min(totalsDT$year))
   totalsDT[,ma.total := ma(total, window, padWithNA = TRUE),]
+#  browser()
+#  print(mainDT)
+#  print(totalsDT)
   mainDT[,c('ma','ma.total') := list(ma(freq, window, padWithNA = TRUE), selectTotalYears(totalsDT,min(year),max(year))),by=key(mainDT)]
   mainDT[,ma := ma(freq, window, padWithNA = TRUE),by=key(mainDT)]
   mainDT[,ma.total := selectTotalYears(totalsDT,min(year),max(year)),by=key(mainDT)]
@@ -177,16 +171,21 @@ computeTrend <- function(d, indicator='rate',measure='prob.joint') {
 
 # returns the threshold for upper outliers for the values in v0: Q3 + 1.5 IQR
 #
-calculateThresholdTopOutliers <- function(v0, discardNegativeValues=FALSE) {
+calculateThresholdTopOutliers <- function(v0, discardNegativeValues=FALSE,farOut=TRUE) {
   if (discardNegativeValues) {
     v <- v0[!is.na(v0) & v0>0]
   } else {
     v <- v0[!is.na(v0)]
   }
+  if (farOut) {
+    k <- 3
+  } else {
+    k <- 1.5
+  }
   if (length(v)>0) {
     quartiles <- quantile(v,c(.25,.75))
     iqr <- quartiles[2] - quartiles[1] # Q3-Q1
-    quartiles[2] + 1.5*iqr
+    quartiles[2] + k*iqr
   } else {
     NA
   }
@@ -414,6 +413,33 @@ displayMultiTrend <- function(pairsData,indivData, totals, staticData, indicator
   trend[,value:=d[,trend]]
   r<-rbind(raw,trend)
   ggplot(r,aes(year,value))+geom_col()+facet_grid(var~relation,scales='free_y')+xlim(yearRange)
+}
+
+
+# receives a data table with ma  already calculated
+# returns a lis of 4 graphs with/without log for x/y 
+displayTrendDistribution <- function(ma.joint, ma.indiv, indicators=c('diff','rate'),measures=c('prob.joint','pmi','npmi','mi','nmi')) {
+    l <- list()
+    thresholds <- list()
+    for (measure in measures) {
+      for (indicator in indicators) {
+        d<-addDynamicAssociationToRelations(ma.joint,ma.indiv,measures = measure)
+        computeTrend(d,indicator,measure)
+        l[[length(l)+1]] <- data.table(trend=d$trend, measure=measure,indicator=indicator)
+        t1 <- calculateThresholdTopOutliers(d$trend,farOut = FALSE)
+        t2 <- calculateThresholdTopOutliers(d$trend,farOut = TRUE)
+        thresholds[[length(thresholds)+1]] <- data.table(threshold=c(t1,t2),outlier.type=c('k1.5', 'k3.0'),measure=measure,indicator=indicator)
+      }
+    }
+    r<-rbindlist(l)
+    t <- rbindlist(thresholds)
+    graphlist <- list()
+    g <- ggplot(r,aes(trend))+geom_histogram()+facet_wrap(measure~indicator,scales='free')+geom_vline(data=t,aes(xintercept=threshold,colour=outlier.type))
+    graphlist[['x0.y0']] <- g
+    graphlist[['x0.y1']] <- g+scale_y_log10()
+    graphlist[['x1.y0']] <- g+scale_x_log10()
+    graphlist[['x1.y1']] <- g+scale_x_log10()+scale_y_log10()
+    graphlist
 }
 
 

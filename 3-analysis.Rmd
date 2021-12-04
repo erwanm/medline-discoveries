@@ -1,5 +1,5 @@
 ---
-title: "Mining Impactful Discoveries 1: Detecting Surges"
+title: "Mining Impactful Discoveries 3: Analysis"
 author: "Erwan Moreau"
 date: "November 2021"
 output:
@@ -19,6 +19,8 @@ knitr::opts_chunk$set(echo = TRUE)
 dataPath <- '../data/21-extract-discoveries/recompute-with-ND-group/MED'
 dataPathStatic <- paste(dataPath,'across-all-years',sep='/')
 indivFileStatic <- 'indiv.min100.ND.terms'
+# set to TRUE for short execution with a subset of data
+shortVersion <- TRUE
 ```
 
 ```{r load}
@@ -26,6 +28,18 @@ dynamic_joint <- loadDynamicData(dataPath,indivOrJoint = 'joint')
 dynamic_indiv <- loadDynamicData(dataPath,indivOrJoint = 'indiv')
 dynamic_total <- loadDynamicTotalFile(dataPath)
 static_data <- loadStaticData(dataPathStatic)
+```
+
+```{r als}
+als <- filterConcepts(dynamic_joint, 'D000690')
+selectedALS <- filterConcepts(als,c('D051379','D000073885','D000870','D019782','D008875'))
+parkinson <- filterConcepts(dynamic_joint, 'D010300')
+caseParkinson <- filterConcepts(parkinson, 'D013378')
+```
+
+
+```{r, init.data.short, eval=shortVersion}
+dynamic_joint<-pickRandomDynamic(dynamic_joint,n=1000)
 ```
 
 
@@ -58,10 +72,6 @@ displaySeveralPairsData(three_relations,static_data,dynamic_total)
 
 ## Selecting the ALS cases presented in the paper
 
-```{r als}
-als <- filterConcepts(dynamic_joint, 'D000690')
-selectedALS <- filterConcepts(als,c('D051379','D000073885','D000870','D019782','D008875'))
-```
 
 ```{r expl1}
 g<-displaySeveralPairsData(selectedALS,static_data,dynamic_total,excludeConceptsFromName = 'D000690',ncol=5)
@@ -104,9 +114,7 @@ displayMultiTrend(selectedALS,dynamic_indiv,dynamic_total,static_data,indicator=
 ## Using simple frequency
 
 ```{r surges1}
-parkinson <- filterConcepts(dynamic_joint, 'D010300')
-case <- filterConcepts(parkinson, 'D013378')
-g <- displaySurges(case,dynamic_indiv,dynamic_total,static_data,windows=c(1,3), indicators=c('rate','diff'),withTitle = TRUE)
+g <- displaySurges(caseParkinson,dynamic_indiv,dynamic_total,static_data,windows=c(1,3), indicators=c('rate','diff'),withTitle = TRUE)
 g
 # saving the graph as pdf:
 # ggsave('expl1.pdf',g)
@@ -115,10 +123,26 @@ g
 ## Using NMI
 
 ```{r surges2}
-parkinson <- filterConcepts(dynamic_joint, 'D010300')
-case <- filterConcepts(parkinson, 'D013378')
-g <- displaySurges(case,dynamic_indiv,dynamic_total,static_data,valueCol='nmi',windows=c(1,3,5), indicators=c('rate','diff'),withTitle = TRUE)
+g <- displaySurges(caseParkinson,dynamic_indiv,dynamic_total,static_data,valueCol='nmi',windows=c(1,3,5), indicators=c('rate','diff'),withTitle = TRUE)
 g
 # saving the graph as pdf:
 # ggsave('expl1.pdf',g)
+```
+
+# Trend distribution
+
+
+
+```{r sample.ma}
+relations.ma <- computeMovingAverage(dynamic_joint,dynamic_total, window=5)
+indiv.ma <- computeMovingAverage(dynamic_indiv,dynamic_total, window=5)
+```
+
+
+```{r trend.distrib}
+l<-displayTrendDistribution(relations.ma,indiv.ma)
+l$x0.y0
+l$x0.y1
+l$x1.y0
+l$x1.y1
 ```
