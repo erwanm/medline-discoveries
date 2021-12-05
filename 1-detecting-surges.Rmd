@@ -120,17 +120,18 @@ computeTrend(rel.measures, indicator='rate', measure='nmi')
 
 # Detecting surges
 
-For every relation, this step labels filters the years which have a finite `trend` value and labels the remaining rows as surge or not (column `surge` added). 
+For every relation, this step marks the years where the trend value is higher than some threshold $t$ as surge. 
 
-A surge is defined as a year where the `trend` is an [upper outlier](https://en.wikipedia.org/wiki/Interquartile_range#Outliers), i.e. if the values is higher than the third quartile plus 1.5 times the inter quartile range (IQR). There are two options for calculating the outlier years:
-
-- Local outliers (default): every relation is processed independently, i.e. the Q3+1.5IQR threshold is calculated based on the trend values for the current relation only. In other words, the surge years are outliers for the current relation only.
-- Global outliers: the Q3+1.5IQR threshold is calculated based on the trend values for the whole dataset. In other words, the surge years are outliers globally.
+- $t$ can be a custom threshold or defined based on the standard outlier threshold calculated with the inter-quartile range: $t=Q_3 + 3 IQR$. 
+- $t$ can be calculated locally, i.e. independently for every every concept/pair (default)
+- $t$ can be defined globally, either with a custom value or using the standard outlier threshold.
 - The input data table is modified in place for the sake of efficiency. 
 
 
 ```{r surges}
-detectSurges(rel.measures, globalOutliers=FALSE)
+threshold <- calculateThresholdTopOutliers(rel.measures$trend)
+print(threhold)
+detectSurges(rel.measures, globalThreshold=threshold)
 ```
 
 
@@ -138,30 +139,13 @@ detectSurges(rel.measures, globalOutliers=FALSE)
 
 
 ```{r}
-local_stats <- countSurgesByRelation(rel.measures)
-kable(local_stats[n.surges<=10,])
-```
-
-### Statistics global surges
-
-
-```{r global.surges}
-rel.mesures.global<-addDynamicAssociationToRelations(relations.ma,indiv.ma,measures = c('prob.joint','pmi','nmi'))
-computeTrend(rel.mesures.global, indicator='rate', measure='nmi')
-detectSurges(rel.mesures.global, globalOutliers=TRUE)
+surges_stats <- countSurgesByRelation(rel.measures)
+kable(surges_stats[n.surges<=10,])
 ```
 
 
 ```{r}
-global_stats <- countSurgesByRelation(rel.mesures.global)
-kable(global_stats[n.surges<=10,])
-```
-
-```{r}
-local_stats[,surge.type:='local']
-global_stats[,surge.type:='global']
-full_stats <- rbind(local_stats,global_stats)
-ggplot(full_stats,aes(n.surges,prop))+geom_col()+facet_grid(.~surge.type)
+ggplot(surges_stats,aes(n.surges,prop))+geom_col()
 ```
 
 

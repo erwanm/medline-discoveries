@@ -193,63 +193,56 @@ calculateThresholdTopOutliers <- function(v0, discardNegativeValues=FALSE,farOut
 
 
 #
-# - outliers can be taken either globally (across all the 'trend' values) or locally (among the 'trend' values by key)
-# trendDT <- computeTrend(..)
+# - By default calculates the outlier threshold locally (i.e. for every concept/pair)
+# - Recommended to provide a global threshold instead, typically by calculating it like this:
 #
-detectSurges <- function(trendDT, globalOutliers=FALSE, discardNegativeTrend=FALSE) {
+#   computeTrend(trendDT, ..)
+#   detectSurges(trendDT, globalThreshold=calculateThresholdTopOutliers(trendDT$trend))
+#
+# - discardNegativeTrend is used only for the local outlier threshold, ignored otherwise
+# 
+#
+detectSurges <- function(trendDT, globalThreshold=NA, discardNegativeTrend=FALSE) {
   d <- trendDT
-  if (globalOutliers) {
-    d[, surge := (is.finite(trend) & (trend>=calculateThresholdTopOutliers(trend, discardNegativeValues=discardNegativeTrend))),]
-  } else {
+  if (is.na(globalThreshold)) {
     d[, surge := (is.finite(trend) & (trend>=calculateThresholdTopOutliers(trend, discardNegativeValues=discardNegativeTrend))), by=key(d)]
+  } else {
+    d[, surge := (is.finite(trend) & (trend>=globalThreshold)),]
   }
   d
 }
 
 
-computeAndSaveSurgesData <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED', outputFilePrefix='./', indivOrJoint='joint', ma_windows=c(1,3,5),indicators=c('prob.rate','prod.log'), outlier_methods=c('local','global')) {
-  dynamic_joint <- loadDynamicData(dir,indivOrJoint)
+computeAndSaveSurgesData <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED', outputFilePrefix='./', ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi'), indicators=c('rate','diff'), outlier_methods=c('local','global')) {
+  dynamic_joint <- loadDynamicData(dir,indivOrJoint = 'joint')
+  dynamic_indiv <- loadDynamicData(dataPath,indivOrJoint = 'indiv')
   dynamic_total <- loadDynamicTotalFile(dir)
   for (w in ma_windows) {
-    for (i in indicators) {
-      for (o in outlier_methods) {
-        f <- paste0(outputFilePrefix,paste(w,i,o,'tsv',sep='.'))
-        print(paste('processing and saving to', f))
-        relations <- computeMovingAverage(dynamic_joint,dynamic_total, window=w)
-        computeTrend(relations, indicator=i)
-        if (o == 'local') {
-          surges <- detectSurges(relations, globalOutliers=FALSE)
-        } else {
-          if (o == 'global') {
-            surges <- detectSurges(relations, globalOutliers=TRUE)
+    for (m in measures) {
+      for (i in indicators) {
+        for (o in outlier_methods) {
+          f <- paste0(outputFilePrefix,paste(w,m,i,o,'tsv',sep='.'))
+          print(paste('processing and saving to', f))
+          joint.ma <- computeMovingAverage(dynamic_joint,dynamic_total, window=w)
+          indiv.ma <- computeMovingAverage(dynamic_indiv,dynamic_total, window=w)
+          relations<-addDynamicAssociationToRelations(joint.ma,indiv.ma,measures = m)
+          computeTrend(relations, indicator=i,measure=m)
+          if (o == 'local') {
+            surges <- detectSurges(relations, globalThreshold=NA)
           } else {
-            stop('Error: invalid value for method_outliers, must be "global" or "local".')
+            if (o == 'global') {
+              surges <- detectSurges(relations, globalThreshold=calculateThresholdTopOutliers(relations$trend))
+            } else {
+              stop('Error: invalid value for method_outliers, must be "global" or "local".')
+            }
           }
+          fwrite(surges[surge==TRUE,],f,sep='\t')
         }
-        fwrite(surges[surge==TRUE,],f,sep='\t')
       }
     }
   }
 }
 
-
-#
-# - 'oneSurgeByKey': 'no' for keeping all the surges, 'first' for picking the earliest, 'max' for picking the max trend
-#
-# surgesDT <- detectSurges(..)
-#
-filterSurges <- function(surgesDT, oneSurgeByKey='no',minTrend=-Inf) {
-  d <- surgesDT[surge==TRUE & trend>=minTrend,]
-  if (oneSurgeByKey != 'no') {
-    if (oneSurgeByKey == 'max') {
-      d<-d[,.SD[trend==max(trend),],by=key(d)]
-    }
-    if (oneSurgeByKey == 'first') {
-      d<-d[,.SD[year==min(year),],by=key(d)]
-    }
-  }
-  d
-}
 
 
 
@@ -458,7 +451,7 @@ displaySurges <- function(pairsData, indivData, totals, staticData,valueCol='pro
       d <- addRelationName(ma.joint, staticData, excludeConceptsFromName)
       d<-addDynamicAssociationToRelations(d,ma.indiv,measures = valueCol)
       computeTrend(d,indicator,valueCol)
-      surges <- detectSurges(d, globalOutliers=FALSE)
+      surges <- detectSurges(d, globalThreshold=NA)
       surges[,indicator:=indicator,]
       surges[,window:=window,]
       l[[length(l)+1]]<-surges
