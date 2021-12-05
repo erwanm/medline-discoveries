@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 dataPath <- '../data/21-extract-discoveries/recompute-with-ND-group/MED'
 dataPathStatic <- paste(dataPath,'across-all-years',sep='/')
 # set to TRUE for short execution with a subset of data
-shortVersion <- TRUE
+shortVersion <- FALSE
 ```
 
 
@@ -130,7 +130,7 @@ For every relation, this step marks the years where the trend value is higher th
 
 ```{r surges}
 threshold <- calculateThresholdTopOutliers(rel.measures$trend)
-print(threhold)
+print(threshold)
 detectSurges(rel.measures, globalThreshold=threshold)
 ```
 
