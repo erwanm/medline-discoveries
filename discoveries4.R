@@ -1,6 +1,7 @@
 
 library(data.table)
 library(ggplot2)
+library(plyr)
 
 
 # EM November 2021
@@ -108,7 +109,7 @@ ma <- function(x,n=5,padWithNA=FALSE) {
 # from https://stackoverflow.com/questions/69815130/data-table-is-it-possible-to-merge-sd-and-return-a-new-sub-data-table-by-gro/
 #
 fillIncompleteYears <- function(dt,idCols=c('concept'),padBeforeStartYear=0,filterMinYear=NA) {
-  print(paste('DEBUG fillIncompleteYears:',min(dt$year),max(dt$year),padBeforeStartYear,filterMinYear))
+#  print(paste('DEBUG fillIncompleteYears:',min(dt$year),max(dt$year),padBeforeStartYear,filterMinYear))
   # creates a sequence of years from startYear - padBeforeStartYear to endYear
   res<- dt[ dt[, .(year = seq(min(year)-padBeforeStartYear, max(year))), by = idCols],
            on = c(idCols,'year'),
@@ -243,8 +244,40 @@ computeAndSaveSurgesData <- function(dir='data/21-extract-discoveries/recompute-
   }
 }
 
+loadSurgesData <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED', ma_window=1,measure='prob.joint', indicator='diff', outlier_method='global') {
+  f <- paste(dir,paste(ma_window,measure,indicator,outlier_method,'tsv',sep='.'),sep='/')
+  d<-fread(f)
+  setkey(d,c1,c2)
+  d
+}
 
+# returns only the 'surge' column
+adjustZeroFreqSurgesSingleRelation <- function(dt,window) {
+  half_window <- ceiling((window-1)/2)
+  zeroFreqSurgeYears <- dt[surge==TRUE & freq.joint==0,year]
+  firstNonZeroYears <- unique(
+    laply(zeroFreqSurgeYears, function(start_year) {
+      nonZeroYearsInWindow <- dt[year>=start_year & year <= start_year+half_window & freq.joint>0,year]
+      if (length(nonZeroYearsInWindow)>0) {
+        min(nonZeroYearsInWindow)
+      } else {
+        NA
+      }
+    })
+  ,na.rm=TRUE)
+  newSurge <- dt$surge
+  zeroFreqSurgeYearsIndexes <- dt[surge==TRUE & freq.joint==0, which=TRUE]
+  newSurge[zeroFreqSurgeYearsIndexes] <- rep(FALSE,length(zeroFreqSurgeYearsIndexes))
+  firstNonZeroIndexes <- dt[year %in% firstNonZeroYears,which=TRUE]
+  newSurge[firstNonZeroIndexes] <- rep(TRUE,length(firstNonZeroIndexes))
+  newSurge
+}
 
+adjustZeroFreqSurges <- function(surgesDT, window) {
+  if (window>1) {
+    surgesDT[,surge:=adjustZeroFreqSurgesSingleRelation(.SD,window),by=key(surgesDT)]
+  }
+}
 
 
 #
@@ -363,7 +396,8 @@ addRelationName <- function(relationsDT, staticData,excludeConceptsFromName=NULL
     d[,tmp2 := if (c2 %in% excludeConceptsFromName) "" else term.c2,by=c2]
     d[,relation := paste0(tmp1,tmp2),]
   }
-  d[,c(colnames(relationsDT),'relation'), with = FALSE]
+  d
+#  d[,c(colnames(relationsDT),'relation'), with = FALSE]
 }
 
 

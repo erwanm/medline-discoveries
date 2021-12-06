@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 dataPath <- '../data/21-extract-discoveries/recompute-with-ND-group/MED'
 dataPathStatic <- paste(dataPath,'across-all-years',sep='/')
 # set to TRUE for short execution with a subset of data
-shortVersion <- FALSE
+shortVersion <- TRUE
 ```
 
 
@@ -113,7 +113,7 @@ This step calculates the `trend` for every year and every relation, then labels 
 Example:
 
 ```{r trend}
-computeTrend(rel.measures, indicator='rate', measure='nmi')
+computeTrend(rel.measures, indicator='diff', measure='nmi')
 ```
 
 - Note: there is no need to store the output data table since `relations` is modified by reference.
@@ -135,7 +135,16 @@ detectSurges(rel.measures, globalThreshold=threshold)
 ```
 
 
-## Statistics local surges
+# Adjusting the surge year in the sliding window
+
+Using a moving average window (size higher than 1) can cause the surge year to be detected too early. This can lead to a meaningless result, in particular if the surge year may have zero cooccurrences. This step performs a simple adjustment to the next year with non-zero frequency in cases where this problem happens.
+
+```{r adjust}
+adjustZeroFreqSurges(rel.measures,window=5)
+```
+
+
+# Statistics surges
 
 
 ```{r}
@@ -155,5 +164,5 @@ ggplot(surges_stats,aes(n.surges,prop))+geom_col()
 A convenience function is provided which computes the surges based on multiple parameters and saves the resulting data to a file. This function encapsulates all the steps presented above.
 
 ```{r saving,eval=!shortVersion}
-computeAndSaveSurgesData(dataPath,outputFilePrefix=paste0(dataPath,'/'), ma_windows=c(1,3,5),indicators=c('rate','diff'), outlier_methods=c('local','global'))
+system.time(computeAndSaveSurgesData(dataPath,outputFilePrefix=paste0(dataPath,'/'), ma_windows=c(1,3,5),indicators=c('rate','diff'), outlier_methods=c('local','global')))
 ```
