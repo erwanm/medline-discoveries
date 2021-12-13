@@ -2,6 +2,7 @@
 library(data.table)
 library(ggplot2)
 library(plyr)
+library(superml)
 
 
 # EM November 2021
@@ -170,7 +171,7 @@ computeTrend <- function(d, indicator='rate',measure='prob.joint') {
 }
 
 
-# returns the threshold for upper outliers for the values in v0: Q3 + 1.5 IQR
+# returns the threshold for upper outliers for the values in v0: Q3 + k IQR (k=3 by default, 1.5 if farOut=FALSE
 #
 calculateThresholdTopOutliers <- function(v0, discardNegativeValues=FALSE,farOut=TRUE) {
   if (discardNegativeValues) {
@@ -192,6 +193,24 @@ calculateThresholdTopOutliers <- function(v0, discardNegativeValues=FALSE,farOut
   }
 }
 
+
+minMaxScale <- function(values) {
+  noNA <- values[!is.na(values)]
+  maxtrend<-max(noNA)
+  mintrend<-min(noNA)
+  (noNA-mintrend)/(maxtrend-mintrend)
+}
+
+# Inflection point which maximizes the top left rectangle in the curve made of the 'flat' distribution.
+# See analysis Rmd.
+#
+calculateThresholdInflectionPoint <- function(values) {
+  noNA <- values[!is.na(values)]
+  norma <- minMaxScale(noNA)
+  relrank <- rank(norma, ties.method = 'random')/length(norma)
+  areaQuantileTrend <- relrank*(1-norma)
+  noNA[which(areaQuantileTrend==max(areaQuantileTrend))]
+}
 
 #
 # - By default calculates the outlier threshold locally (i.e. for every concept/pair)
@@ -362,7 +381,7 @@ calculateAssociation <- function(dt, filterMeasures=default_measures,col1='freq.
 #
 addStaticAssociationToRelations <- function(relationsDT, staticData, filterMeasures = c('pmi','npmi')) {
   d <- merge(relationsDT, staticData, by=c('c1','c2'),suffixes=c('.dynamic','.static'))
-  calculateAssociation(d,filterMeasures=filterMeasures)
+  calculateAssociation(d,filterMeasures=filterMeasures,colJoint = 'freq.joint.static',col1 = 'freq.c1.static',col2='freq.c2.static')
   d
 }
 
@@ -388,7 +407,7 @@ addRelationName <- function(relationsDT, staticData,excludeConceptsFromName=NULL
   d[,n1 := paste0(term.c1,' (',c1,")"),]
   d[,n2 := paste0(term.c2,' (',c2,")"),]
   d[,fulldescr := paste0(n1,' - ',n2),]
-  print(unique(d[,fulldescr]))
+#  print(unique(d[,fulldescr]))
   if (is.null(excludeConceptsFromName)) {
     d[,relation := paste0(term.c1,' - ',term.c2),]
   } else {
@@ -414,8 +433,8 @@ displayMultiMeasure <- function(pairsData,indivData, totals, staticData,windows=
   for (window in windows) {
     ma.joint <- computeMovingAverage(pairsData,totals, window=window)
     ma.indiv <- computeMovingAverage(indivData,totals, window=window)
-    d <- addRelationName(ma.joint, staticData, excludeConceptsFromName)
-    d<-addDynamicAssociationToRelations(d,ma.indiv,measures = measures)
+    d<-addDynamicAssociationToRelations(ma.joint,ma.indiv,measures = measures)
+    d <- addRelationName(d, staticData, excludeConceptsFromName)
     d[,window:=window]
     l[[length(l)+1]]<-d
   }
@@ -429,8 +448,8 @@ displayMultiMeasure <- function(pairsData,indivData, totals, staticData,windows=
 displayMultiTrend <- function(pairsData,indivData, totals, staticData, indicator='rate',window=3,measure='prob.joint',yearRange=c(1988,2018),excludeConceptsFromName=NULL) {
   ma.joint <- computeMovingAverage(pairsData,totals, window=window)
   ma.indiv <- computeMovingAverage(indivData,totals, window=window)
-  d <- addRelationName(ma.joint, staticData, excludeConceptsFromName)
-  d<-addDynamicAssociationToRelations(d,ma.indiv,measures = measure)
+  d<-addDynamicAssociationToRelations(ma.joint,ma.indiv,measures = measure)
+  d <- addRelationName(d, staticData, excludeConceptsFromName)
   computeTrend(d,indicator,measure)
   raw <- d[,c('year','relation')]
   raw[,var:=measure]
@@ -445,7 +464,7 @@ displayMultiTrend <- function(pairsData,indivData, totals, staticData, indicator
 
 # receives a data table with ma  already calculated
 # returns a lis of 4 graphs with/without log for x/y 
-displayTrendDistribution <- function(ma.joint, ma.indiv, indicators=c('diff','rate'),measures=c('prob.joint','pmi','npmi','mi','nmi')) {
+displayTrendDistribution1 <- function(ma.joint, ma.indiv, indicators=c('diff','rate'),measures=c('prob.joint','pmi','npmi','mi','nmi')) {
     l <- list()
     thresholds <- list()
     for (measure in measures) {
@@ -470,6 +489,46 @@ displayTrendDistribution <- function(ma.joint, ma.indiv, indicators=c('diff','ra
 }
 
 
+# receives a data table with ma  already calculated
+displayTrendDistribution2 <- function(ma.joint, ma.indiv, indicators=c('diff','rate'),measures=c('prob.joint','pmi','npmi','mi','nmi'),withRect=TRUE) {
+  l <- list()
+  thresholds <- list()
+  rects <- list()
+  for (measure in measures) {
+    print(measure)
+    for (indicator in indicators) {
+      print(indicator)
+      d<-addDynamicAssociationToRelations(ma.joint,ma.indiv,measures = measure)
+      computeTrend(d,indicator,measure)
+      d<-d[is.finite(trend),]
+      d[,trend.norma:=minMaxScale(trend)]
+      d[,relrank:=rank(trend.norma, ties.method = 'random')/nrow(d)]
+      d[,areaQuantileTrend := relrank*(1-trend.norma),]
+      t1 <- calculateThresholdTopOutliers(d$trend,farOut = FALSE)
+      rr1 <- d[abs(d$trend-t1)==min(abs(d$trend-t1)),relrank]
+      t2 <- calculateThresholdTopOutliers(d$trend,farOut = TRUE)
+      rr2 <- d[abs(d$trend-t2)==min(abs(d$trend-t2)),relrank]
+      t3 <- calculateThresholdInflectionPoint(d$trend)
+      rr3 <- d[abs(d$trend-t3)==min(abs(d$trend-t3)),relrank]
+      thresholds[[length(thresholds)+1]] <- data.table(threshold=c(rr1,rr2,rr3),outlier.type=c('k1.5', 'k3.0','infl.pt.'),measure=measure,indicator=indicator)
+      l[[length(l)+1]] <- data.table(trend.norma=d$trend.norma,relrank=d$relrank, measure=measure,indicator=indicator)
+      if (withRect) {
+        p<-d[areaQuantileTrend==max(areaQuantileTrend),]
+        rects[[length(rects)+1]] <- data.table(xmin=0,xmax=p$relrank,ymin=p$trend.norma,ymax=1,measure=measure,indicator=indicator)
+      }
+    }
+  }
+  r<-rbindlist(l)
+  t <- rbindlist(thresholds)
+  rect<-rbindlist(rects)
+  g <- ggplot(r,aes(relrank,trend.norma))+geom_point()+facet_wrap(measure~indicator,scales = 'free_y')+geom_vline(data=t,aes(xintercept=threshold,colour=outlier.type),size=1.5,linetype = "longdash")
+  if (withRect) {
+    g<-g+geom_rect(data=rect,aes(NULL,NULL,xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax,alpha=.1))+ guides(alpha = 'none')
+  }
+  g
+}
+
+
 #
 # single relation
 #
@@ -482,8 +541,8 @@ displaySurges <- function(pairsData, indivData, totals, staticData,valueCol='pro
     for (indicator in indicators) {
       ma.joint <- computeMovingAverage(pairsData,totals, window=window)
       ma.indiv <- computeMovingAverage(indivData,totals, window=window)
-      d <- addRelationName(ma.joint, staticData, excludeConceptsFromName)
-      d<-addDynamicAssociationToRelations(d,ma.indiv,measures = valueCol)
+      d<-addDynamicAssociationToRelations(ma.joint,ma.indiv,measures = valueCol)
+      d <- addRelationName(d, staticData, excludeConceptsFromName)
       computeTrend(d,indicator,valueCol)
       surges <- detectSurges(d, globalThreshold=NA)
       surges[,indicator:=indicator,]
@@ -512,4 +571,24 @@ countSurgesByRelation <- function(surgesDT) {
   r<-surges.by.key[,.(n=.N,prop=.N/nrow(surges.by.key)),by=n.surges]
   setorder(r,n.surges)
   r
+}
+
+
+# returns a tidy version of the df after separating the elements in column 'colname'
+# The rows which have multiple elements get duplicated, each with one of the elements
+#
+# source: https://stackoverflow.com/questions/13773770/split-comma-separated-strings-in-a-column-into-separate-rows
+#
+tidyUpMultiStringCol <- function(dt, colname, sep=' ') {
+  otherCols <- colnames(dt)[colnames(dt) != colname]
+  setDT(dt)[, lapply(.SD, function(x) unlist(tstrsplit(x, sep, fixed=TRUE))), by = otherCols]
+  
+}
+
+
+
+# table must have group.c1 and group.c2 as single group: use tidyUpMultiStringCol() on both columns
+#
+selectRelationsGroups <- function(relationsDT, groups1=c('DISO','CHEM','GENE','ANAT'), groups2=c('DISO','CHEM','GENE','ANAT')) {
+ relationsDT[group.c1 %in% groups1 & group.c2 %in% groups2,] 
 }

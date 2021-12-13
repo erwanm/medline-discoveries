@@ -39,7 +39,7 @@ caseParkinson <- filterConcepts(parkinson, 'D013378')
 
 
 ```{r, init.data.short, eval=shortVersion}
-dynamic_joint<-pickRandomDynamic(dynamic_joint,n=1000)
+dynamic_joint<-pickRandomDynamic(dynamic_joint,n=300)
 ```
 
 
@@ -132,17 +132,34 @@ g
 # Trend distribution
 
 
+## 'Standard' version
+
+
 
 ```{r sample.ma}
 relations.ma <- computeMovingAverage(dynamic_joint,dynamic_total, window=5)
 indiv.ma <- computeMovingAverage(dynamic_indiv,dynamic_total, window=5)
 ```
 
+The following graphs show different versions of the histogram of the `trend` values: with/without logarithmic scale on the X and/or Y axis.
 
-```{r trend.distrib}
-l<-displayTrendDistribution(relations.ma,indiv.ma)
+The vertical lines show the outlier threshold calculated as $Q_3+k \times IQR$, where $k$ is either 1.5 or 3 ("far outliers").
+
+```{r trend.distrib1}
+l<-displayTrendDistribution1(relations.ma,indiv.ma)
 l$x0.y0
 l$x0.y1
 l$x1.y0
 l$x1.y1
+```
+
+## "Flat" distribution
+
+These graphs show the "flat" distribution (not sure if it has a standard name): 
+
+- The points are sorted by `trend` and their relative rank (rank divided by number of points) is plotted as X. In other words, the X axis represents all the quantile positions with respect to `trend`.
+- The `trend` value shown on the Y axis is normalized between [0,1] for every measure.
+
+```{r trend.distrib2}
+displayTrendDistribution2(relations.ma,indiv.ma,withRect = FALSE)
 ```
