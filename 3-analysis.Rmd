@@ -21,7 +21,12 @@ dataPathStatic <- paste(dataPath,'across-all-years',sep='/')
 indivFileStatic <- 'indiv.min100.ND.terms'
 # set to TRUE for short execution with a subset of data
 shortVersion <- TRUE
+savePaperGraphs <- TRUE
 ```
+
+# datasets
+
+## Loading
 
 ```{r load}
 dynamic_joint <- loadDynamicData(dataPath,indivOrJoint = 'joint')
@@ -29,6 +34,9 @@ dynamic_indiv <- loadDynamicData(dataPath,indivOrJoint = 'indiv')
 dynamic_total <- loadDynamicTotalFile(dataPath)
 static_data <- loadStaticData(dataPathStatic)
 ```
+
+
+## Selecting the specific concepts presented in the paper
 
 ```{r als}
 als <- filterConcepts(dynamic_joint, 'D000690')
@@ -38,12 +46,12 @@ caseParkinson <- filterConcepts(parkinson, 'D013378')
 ```
 
 
-```{r, init.data.short, eval=shortVersion}
+```{r, init.data.short, echo=shortVersion, eval=shortVersion}
 dynamic_joint<-pickRandomDynamic(dynamic_joint,n=300)
 ```
 
 
-# Examples frequency across years
+# Visualizing frequency across time
 
 ## Generating random examples
 
@@ -59,7 +67,9 @@ In order to avoid cases with insufficient data, it is possible to filter out row
 three_relations<-pickRandomDynamic(dynamic_joint,n=3, minFreqYear = 200)
 ```
 
-## Displaying a single relation with its concepts names
+## Displaying relations with their concepts names
+
+Using the relations selected randomly above:
 
 ```{r display1}
 displaySeveralPairsData(relation,static_data,dynamic_total)
@@ -70,21 +80,28 @@ displaySeveralPairsData(relation,static_data,dynamic_total)
 displaySeveralPairsData(three_relations,static_data,dynamic_total)
 ```
 
-## Selecting the ALS cases presented in the paper
+## Displaying the ALS cases
 
 
 ```{r expl1}
 g<-displaySeveralPairsData(selectedALS,static_data,dynamic_total,excludeConceptsFromName = 'D000690',ncol=5)
 g
-# saving the graph as pdf:
-# ggsave('expl1.pdf',g)
 ```
 
+```{r expl1.save, echo=savePaperGraphs, eval=savePaperGraphs}
+ggsave('expl1.pdf',g)
+```
 
 # Measures
 
 ```{r measures1}
-displayMultiMeasure(selectedALS,dynamic_indiv,dynamic_total,static_data,windows=c(1,3,5),measures=c('prob.joint','pmi','nmi'),excludeConceptsFromName = 'D000690')
+g <- displayMultiMeasure(selectedALS,dynamic_indiv,dynamic_total,static_data,windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi'),excludeConceptsFromName = 'D000690')
+g
+```
+
+
+```{r measures1.save, echo=savePaperGraphs, eval=savePaperGraphs}
+ggsave('expl-measures.pdf',g+ theme(text=element_text(size=14),legend.position="none",axis.title.x=element_blank(),axis.title.y=element_blank()),width=20,height=16,units = "cm")
 ```
 
 # Trend parameters

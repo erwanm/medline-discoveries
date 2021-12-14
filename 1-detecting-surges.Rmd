@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 dataPath <- '../data/21-extract-discoveries/recompute-with-ND-group/MED'
 dataPathStatic <- paste(dataPath,'across-all-years',sep='/')
 # set to TRUE for short execution with a subset of data
-shortVersion <- FALSE
+shortVersion <- TRUE
 ```
 
 
@@ -121,6 +121,7 @@ computeTrend(rel.measures, indicator='diff', measure='nmi')
 # Detecting surges
 
 For every relation, this step marks the years where the trend value is higher than some threshold $t$ as surge. 
+TODO update
 
 - $t$ can be a custom threshold or defined based on the standard outlier threshold calculated with the inter-quartile range: $t=Q_3 + 3 IQR$. 
 - $t$ can be calculated locally, i.e. independently for every every concept/pair (default)
@@ -129,7 +130,8 @@ For every relation, this step marks the years where the trend value is higher th
 
 
 ```{r surges}
-threshold <- calculateThresholdTopOutliers(rel.measures$trend)
+# threshold <- calculateThresholdTopOutliers(rel.measures$trend)
+threshold <- calculateThresholdInflectionPoint(rel.measures$trend)
 print(threshold)
 detectSurges(rel.measures, globalThreshold=threshold)
 ```
