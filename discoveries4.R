@@ -233,31 +233,23 @@ detectSurges <- function(trendDT, globalThreshold=NA, discardNegativeTrend=FALSE
 }
 
 
-computeAndSaveSurgesData <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED', outputFilePrefix='./', ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi'), indicators=c('rate','diff'), outlier_methods=c('local','global')) {
+computeAndSaveSurgesData <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED', outputFilePrefix='./', ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi'), indicators=c('rate','diff')) {
   dynamic_joint <- loadDynamicData(dir,indivOrJoint = 'joint')
   dynamic_indiv <- loadDynamicData(dataPath,indivOrJoint = 'indiv')
   dynamic_total <- loadDynamicTotalFile(dir)
   for (w in ma_windows) {
+    joint.ma <- computeMovingAverage(dynamic_joint,dynamic_total, window=w)
+    indiv.ma <- computeMovingAverage(dynamic_indiv,dynamic_total, window=w)
     for (m in measures) {
       for (i in indicators) {
-        for (o in outlier_methods) {
-          f <- paste0(outputFilePrefix,paste(w,m,i,o,'tsv',sep='.'))
+          f <- paste0(outputFilePrefix,paste(m,i,w,'tsv',sep='.'))
           print(paste('processing and saving to', f))
-          joint.ma <- computeMovingAverage(dynamic_joint,dynamic_total, window=w)
-          indiv.ma <- computeMovingAverage(dynamic_indiv,dynamic_total, window=w)
           relations<-addDynamicAssociationToRelations(joint.ma,indiv.ma,measures = m)
           computeTrend(relations, indicator=i,measure=m)
-          if (o == 'local') {
-            surges <- detectSurges(relations, globalThreshold=NA)
-          } else {
-            if (o == 'global') {
-              surges <- detectSurges(relations, globalThreshold=calculateThresholdTopOutliers(relations$trend))
-            } else {
-              stop('Error: invalid value for method_outliers, must be "global" or "local".')
-            }
-          }
-          fwrite(surges[surge==TRUE,],f,sep='\t')
-        }
+          threshold <- calculateThresholdInflectionPoint(relations$trend)
+          detectSurges(relations, globalThreshold=calculateThresholdTopOutliers(relations$trend))
+          adjustZeroFreqSurges(relations,window=w)
+          fwrite(relations[surge==TRUE,],f,sep='\t')
       }
     }
   }
