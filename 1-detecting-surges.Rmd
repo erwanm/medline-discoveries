@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 dataPath <- '../data/21-extract-discoveries/recompute-with-ND-group/MED'
 dataPathStatic <- paste(dataPath,'across-all-years',sep='/')
 # set to TRUE for short execution with a subset of data
-shortVersion <- TRUE
+shortVersion <- FALSE
 ```
 
 
@@ -166,5 +166,5 @@ ggplot(surges_stats,aes(n.surges,prop))+geom_col()
 A convenience function is provided which computes the surges based on multiple parameters and saves the resulting data to a file. This function encapsulates all the steps presented above.
 
 ```{r saving,eval=!shortVersion}
-system.time(computeAndSaveSurgesData(dataPath,outputFilePrefix=paste0(dataPath,'/'), ma_windows=c(1,3,5),indicators=c('rate','diff'), outlier_methods=c('local','global')))
+system.time(computeAndSaveSurgesData(dataPath,outputFilePrefix=paste0(dataPath,'/'), ma_windows=c(1,3,5),indicators=c('rate','diff')))
 ```
