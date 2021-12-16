@@ -2,7 +2,7 @@
 library(data.table)
 library(ggplot2)
 library(plyr)
-library(superml)
+library(cowplot)
 
 
 # EM November 2021
@@ -160,7 +160,7 @@ computeTrend <- function(d, indicator='rate',measure='prob.joint') {
   val<-as.name(measure)
   d[, prev.value := c(NA,head(eval(val),-1)), by=key(d)]
   if ('rate' == indicator) {
-    d[, trend := (eval(val)-prev.value)/prev.value,]
+    d[, trend := (eval(val)-prev.value)/abs(prev.value),]
   }
   if ('diff' == indicator) {
     d[, trend := eval(val)-prev.value,]
@@ -482,14 +482,14 @@ displayTrendDistribution1 <- function(ma.joint, ma.indiv, indicators=c('diff','r
 
 
 # receives a data table with ma  already calculated
-displayTrendDistribution2 <- function(ma.joint, ma.indiv, indicators=c('diff','rate'),measures=c('prob.joint','pmi','npmi','mi','nmi'),withRect=TRUE) {
+displayTrendDistribution2 <- function(ma.joint, ma.indiv, indicators=c('diff','rate'),measures=c('prob.joint','pmi','npmi','mi','nmi'),withRect=TRUE, normaTrend=TRUE,withThresholds=TRUE) {
   l <- list()
   thresholds <- list()
   rects <- list()
   for (measure in measures) {
-    print(measure)
+#    print(measure)
     for (indicator in indicators) {
-      print(indicator)
+#      print(indicator)
       d<-addDynamicAssociationToRelations(ma.joint,ma.indiv,measures = measure)
       computeTrend(d,indicator,measure)
       d<-d[is.finite(trend),]
@@ -503,7 +503,7 @@ displayTrendDistribution2 <- function(ma.joint, ma.indiv, indicators=c('diff','r
       t3 <- calculateThresholdInflectionPoint(d$trend)
       rr3 <- d[abs(d$trend-t3)==min(abs(d$trend-t3)),relrank]
       thresholds[[length(thresholds)+1]] <- data.table(threshold=c(rr1,rr2,rr3),outlier.type=c('k1.5', 'k3.0','infl.pt.'),measure=measure,indicator=indicator)
-      l[[length(l)+1]] <- data.table(trend.norma=d$trend.norma,relrank=d$relrank, measure=measure,indicator=indicator)
+      l[[length(l)+1]] <- data.table(trend=d$trend,trend.norma=d$trend.norma,relrank=d$relrank, measure=measure,indicator=indicator)
       if (withRect) {
         p<-d[areaQuantileTrend==max(areaQuantileTrend),]
         rects[[length(rects)+1]] <- data.table(xmin=0,xmax=p$relrank,ymin=p$trend.norma,ymax=1,measure=measure,indicator=indicator)
@@ -513,11 +513,38 @@ displayTrendDistribution2 <- function(ma.joint, ma.indiv, indicators=c('diff','r
   r<-rbindlist(l)
   t <- rbindlist(thresholds)
   rect<-rbindlist(rects)
-  g <- ggplot(r,aes(relrank,trend.norma))+geom_point()+facet_wrap(measure~indicator,scales = 'free_y')+geom_vline(data=t,aes(xintercept=threshold,colour=outlier.type),size=1.5,linetype = "longdash")
+  if (normaTrend) {
+    yVar <- 'trend.norma'
+  } else {
+    yVar <- 'trend'
+  }
+  g <- ggplot(r,aes_string('relrank',yVar))+geom_point()+facet_grid(measure~indicator,scales = 'free_y')
+  if (withThresholds) {
+    g <- g+geom_vline(data=t,aes(xintercept=threshold,colour=outlier.type),size=1.5,linetype = "longdash")
+  }
   if (withRect) {
     g<-g+geom_rect(data=rect,aes(NULL,NULL,xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax,alpha=.1))+ guides(alpha = 'none')
   }
   g
+}
+
+
+displayTwoPlotsDistribTrend <- function(ma.joint, ma.indiv, indicator='diff',measure='nmi',withQuantileTest=FALSE,fontsize=16) {
+  d<-addDynamicAssociationToRelations(ma.joint,ma.indiv,measures = measure)
+  computeTrend(d,indicator,measure)
+  d<-d[is.finite(trend),]
+  d[,quantile:=rank(trend, ties.method = 'random')/nrow(d)]
+  g1 <- ggplot(d,aes(trend))+geom_histogram(bins=60)+scale_y_log10(labels = scales::comma_format(accuracy=1,big.mark = ",", decimal.mark = "."))+theme(text=element_text(size=fontsize))
+  g2 <- ggplot(d,aes(quantile,trend))+geom_point(size=.75)+theme(text=element_text(size=fontsize))
+  if (withQuantileTest) {
+    qdt <- data.table(q=seq(0,1,.05),v=quantile(d$trend,probs=seq(0,1,.05)))
+    g2 <- g2 + +geom_point(data=qdt, aes(q,v),colour='red')
+  }
+  plot_grid(g1,
+            g2,
+            labels = NULL,
+            label_x = 0.2,
+            ncol = 2)
 }
 
 
@@ -584,3 +611,5 @@ tidyUpMultiStringCol <- function(dt, colname, sep=' ') {
 selectRelationsGroups <- function(relationsDT, groups1=c('DISO','CHEM','GENE','ANAT'), groups2=c('DISO','CHEM','GENE','ANAT')) {
  relationsDT[group.c1 %in% groups1 & group.c2 %in% groups2,] 
 }
+
+

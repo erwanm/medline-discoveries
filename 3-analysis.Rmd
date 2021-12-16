@@ -47,7 +47,7 @@ caseParkinson <- filterConcepts(parkinson, 'D013378')
 
 
 ```{r, init.data.short, echo=shortVersion, eval=shortVersion}
-dynamic_joint<-pickRandomDynamic(dynamic_joint,n=300)
+dynamic_joint<-pickRandomDynamic(dynamic_joint,n=1000)
 ```
 
 
@@ -163,11 +163,11 @@ The following graphs show different versions of the histogram of the `trend` val
 The vertical lines show the outlier threshold calculated as $Q_3+k \times IQR$, where $k$ is either 1.5 or 3 ("far outliers").
 
 ```{r trend.distrib1}
-l<-displayTrendDistribution1(relations.ma,indiv.ma)
-l$x0.y0
-l$x0.y1
-l$x1.y0
-l$x1.y1
+#l<-displayTrendDistribution1(relations.ma,indiv.ma)
+#l$x0.y0
+#l$x0.y1
+#l$x1.y0
+#l$x1.y1
 ```
 
 ## "Flat" distribution
@@ -178,5 +178,15 @@ These graphs show the "flat" distribution (not sure if it has a standard name):
 - The `trend` value shown on the Y axis is normalized between [0,1] for every measure.
 
 ```{r trend.distrib2}
-displayTrendDistribution2(relations.ma,indiv.ma,withRect = FALSE)
+#displayTrendDistribution2(relations.ma,indiv.ma,withRect = FALSE)
 ```
+
+```{r trend.distrib3}
+g<-displayTwoPlotsDistribTrend(relations.ma,indiv.ma)
+g
+```
+
+```{r trend.distrib3.save, echo=savePaperGraphs, eval=savePaperGraphs}
+ggsave('expl-trend-distrib.pdf',g,width=20,height=8,units = "cm")
+```
+
