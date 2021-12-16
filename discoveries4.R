@@ -2,7 +2,6 @@
 library(data.table)
 library(ggplot2)
 library(plyr)
-library(superml)
 
 
 # EM November 2021
@@ -233,7 +232,7 @@ detectSurges <- function(trendDT, globalThreshold=NA, discardNegativeTrend=FALSE
 }
 
 
-computeAndSaveSurgesData <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED', outputFilePrefix='./', ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi'), indicators=c('rate','diff')) {
+computeAndSaveSurgesData <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED', outputFilePrefix='./', ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'), indicators=c('rate','diff')) {
   dynamic_joint <- loadDynamicData(dir,indivOrJoint = 'joint')
   dynamic_indiv <- loadDynamicData(dataPath,indivOrJoint = 'indiv')
   dynamic_total <- loadDynamicTotalFile(dir)
