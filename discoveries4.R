@@ -205,11 +205,11 @@ minMaxScale <- function(values) {
 # See analysis Rmd.
 #
 calculateThresholdInflectionPoint <- function(values) {
-  noNA <- values[!is.na(values)]
-  norma <- minMaxScale(noNA)
+  fValues <- values[is.finite(values)]
+  norma <- minMaxScale(fValues)
   relrank <- rank(norma, ties.method = 'random')/length(norma)
   areaQuantileTrend <- relrank*(1-norma)
-  noNA[which(areaQuantileTrend==max(areaQuantileTrend))]
+  fValues[which(areaQuantileTrend==max(areaQuantileTrend))]
 }
 
 #
@@ -235,7 +235,9 @@ detectSurges <- function(trendDT, globalThreshold=NA, discardNegativeTrend=FALSE
 
 computeAndSaveSurgesData <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED', outputFilePrefix='./', ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'), indicators=c('rate','diff')) {
   dynamic_joint <- loadDynamicData(dir,indivOrJoint = 'joint')
-  dynamic_indiv <- loadDynamicData(dataPath,indivOrJoint = 'indiv')
+  # for debugging:
+  # dynamic_joint<-pickRandomDynamic(dynamic_joint,n=1000)
+  dynamic_indiv <- loadDynamicData(dir,indivOrJoint = 'indiv')
   dynamic_total <- loadDynamicTotalFile(dir)
   for (w in ma_windows) {
     joint.ma <- computeMovingAverage(dynamic_joint,dynamic_total, window=w)
@@ -247,7 +249,7 @@ computeAndSaveSurgesData <- function(dir='data/21-extract-discoveries/recompute-
           relations<-addDynamicAssociationToRelations(joint.ma,indiv.ma,measures = m)
           computeTrend(relations, indicator=i,measure=m)
           threshold <- calculateThresholdInflectionPoint(relations$trend)
-          detectSurges(relations, globalThreshold=calculateThresholdTopOutliers(relations$trend))
+          detectSurges(relations, globalThreshold=threshold)
           adjustZeroFreqSurges(relations,window=w)
           fwrite(relations[surge==TRUE,],f,sep='\t')
       }
@@ -255,12 +257,13 @@ computeAndSaveSurgesData <- function(dir='data/21-extract-discoveries/recompute-
   }
 }
 
-loadSurgesData <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED', ma_window=1,measure='prob.joint', indicator='diff', outlier_method='global') {
-  f <- paste(dir,paste(ma_window,measure,indicator,outlier_method,'tsv',sep='.'),sep='/')
+loadSurgesData <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED', ma_window=1,measure='prob.joint', indicator='diff') {
+  f <- paste(dir,paste(measure,indicator,ma_window,'tsv',sep='.'),sep='/')
   d<-fread(f)
   setkey(d,c1,c2)
   d
 }
+
 
 # returns only the 'surge' column
 adjustZeroFreqSurgesSingleRelation <- function(dt,window) {
@@ -613,3 +616,20 @@ selectRelationsGroups <- function(relationsDT, groups1=c('DISO','CHEM','GENE','A
 }
 
 
+statsSurges <- function(total.pairs,total.rel, dir='data/21-extract-discoveries/recompute-with-ND-group/MED', ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'), indicators=c('diff','rate')) {
+  l <- list()
+  for (w in ma_windows) {
+    for (m in measures) {
+      for (i in indicators) {
+        print(paste('w=',w,'m=',m,'i=',i))
+        d<-loadSurgesData(dir,w,m,i)
+        prop.pairs <- nrow(d) / total.pairs
+        prop.rel <- nrow(unique(d,by=key(d)))/total.rel
+        print(paste('pairs=',nrow(d),'rel=',nrow(unique(d,by=key(d)))))
+        l[[length(l)+1]]<-data.table(window=w,measure=m,indicator=i,prop.pairs=prop.pairs,prop.rel=prop.rel)
+      }
+    }
+  }
+  r<-rbindlist(l)
+  r
+}
