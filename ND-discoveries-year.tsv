@@ -1,0 +1,13 @@
+c1	c2	term.c1	group.c1	term.c2	group.c2	year	source	notes
+D002894	D006816	Chromosomes, Human, Pair 4	NA	Huntington Disease	DISO	1983	https://en.wikipedia.org/wiki/Huntington's_disease#History	approximately located on this gene in 1983, precisely located in 1993
+D000071617	D010300	Protein Deglycase DJ-1	CHEM	Parkinson Disease	DISO	2003	https://www.sciencedirect.com/topics/neuroscience/protein-deglycase-dj-1	unclear yearn 2001 to 2004
+D000690	D057180	Amyotrophic Lateral Sclerosis	DISO	Frontotemporal dementia	DISO	2009	https://en.wikipedia.org/wiki/C9orf72	
+D000073885	D057180	C9orf72 Protein	CHEM	Frontotemporal dementia	DISO	2009	https://en.wikipedia.org/wiki/C9orf72	
+D000073885	D000690	C9orf72 Protein	CHEM	Amyotrophic Lateral Sclerosis	DISO	2009	https://en.wikipedia.org/wiki/C9orf72	
+D000072105	D000690	superoxide dismutase 1	CHEM	Amyotrophic Lateral Sclerosis	DISO	1993	https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5983710/	
+D000068836	D000544	rivastigmine	CHEM	Alzheimer's Disease	DISO	1997	https://en.wikipedia.org/wiki/Rivastigmine	
+D007980	D010300	levodopa	CHEM	Parkinson Disease	DISO	1961	https://en.wikipedia.org/wiki/L-DOPA#History	
+D007980	D020734	levodopa	CHEM	Parkinsonian Disorders	DISO	1961	https://en.wikipedia.org/wiki/L-DOPA#History	
+D000544	D001714	Alzheimer's Disease	DISO	Bipolar Disorder	DISO	2019	https://www.frontiersin.org/articles/10.3389/fnins.2019.00220/full	
+D004298	D010300	dopamine	CHEM	Parkinson Disease	DISO	1971	https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2824994/	
+D004298	D012559	dopamine	CHEM	Schizophrenia	DISO	1977	https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2824994/	
