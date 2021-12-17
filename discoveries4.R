@@ -621,15 +621,19 @@ statsSurges <- function(total.pairs,total.rel, dir='data/21-extract-discoveries/
   for (w in ma_windows) {
     for (m in measures) {
       for (i in indicators) {
-        print(paste('w=',w,'m=',m,'i=',i))
+#        print(paste('w=',w,'m=',m,'i=',i))
         d<-loadSurgesData(dir,w,m,i)
         prop.pairs <- nrow(d) / total.pairs
         prop.rel <- nrow(unique(d,by=key(d)))/total.rel
-        print(paste('pairs=',nrow(d),'rel=',nrow(unique(d,by=key(d)))))
+#        print(paste('pairs=',nrow(d),'rel=',nrow(unique(d,by=key(d)))))
         l[[length(l)+1]]<-data.table(window=w,measure=m,indicator=i,prop.pairs=prop.pairs,prop.rel=prop.rel)
       }
     }
   }
   r<-rbindlist(l)
+  print('stats pairs:')
+  print(summary(r$prop.pairs))
+  print('stats relations:')
+  print(summary(r$prop.rel))
   r
 }
