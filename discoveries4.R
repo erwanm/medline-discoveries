@@ -637,3 +637,48 @@ statsSurges <- function(total.pairs,total.rel, dir='data/21-extract-discoveries/
   print(summary(r$prop.rel))
   r
 }
+
+loadGoldDiscoveries <- function(dir='medline-discoveries',file='ND-discoveries-year.tsv') {
+  fread('medline-discoveries/ND-discoveries-year.tsv',drop=c('source','notes'))
+}
+
+
+#
+# matches the gold discoveries with a surges DT and returns a DT which has exactly one row for every
+# gold discovery, and the closest year found in the surges (NA if not found at all).
+# In order to match using the first year surge by relation, the surges DT should be filtered first.
+#
+matchSurgesWithGold <- function(surgesDT, goldDT, selectedCols=c('c1','c2','year.gold','year.pred')) {
+  merged <- merge(goldDT, surgesDT, by=c('c1','c2'),suffixes=c('.gold','.pred'),all.x=TRUE)
+  merged[,diff := abs(year.gold - year.pred)]
+  matched <- merged[,.SD[is.na(year.pred) | diff==min(diff)],by=c('c1','c2')]
+  matched <- matched[,.SD[1,],by=c('c1','c2')] # this is in case two rows are selected because e.g. both Y-1 and Y+1 have diff=1
+  matched[,..selectedCols]
+}
+
+
+collectEvalDataSurgesAgainstGold <- function(goldDT, dir,ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'), indicators=c('diff','rate')) {
+  l <- list()
+  for (w in ma_windows) {
+    for (m in measures) {
+      for (i in indicators) {
+        #        print(paste('w=',w,'m=',m,'i=',i))
+        d<-loadSurgesData(dir,w,m,i)
+        setkey(d,c1,c2)
+        # regular version
+        e1 <- matchSurgesWithGold(d,goldDT)
+        e1[,mode='any.year',]
+        # first year version
+        fy <- d[,.SD[year=min(year)],by=key(d)]
+        e2 <- matchSurgesWithGold(fy,goldDT)
+        e2[,mode='first.year',]
+        this <- rbind(e1,e2)
+        this[,ma.window := w]
+        this[,measure := m]
+        this[,indicator:=i]
+        l[[length(l)+1]]<-this
+      }
+    }
+  }
+  rbindlist(l)
+}
