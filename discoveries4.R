@@ -657,28 +657,56 @@ matchSurgesWithGold <- function(surgesDT, goldDT, selectedCols=c('c1','c2','year
 }
 
 
-collectEvalDataSurgesAgainstGold <- function(goldDT, dir,ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'), indicators=c('diff','rate')) {
+collectEvalDataSurgesAgainstGold <- function(goldDT, dir,evalAt=NA,ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'), indicators=c('diff','rate')) {
   l <- list()
   for (w in ma_windows) {
     for (m in measures) {
       for (i in indicators) {
         #        print(paste('w=',w,'m=',m,'i=',i))
-        d<-loadSurgesData(dir,w,m,i)
-        setkey(d,c1,c2)
-        # regular version
-        e1 <- matchSurgesWithGold(d,goldDT)
-        e1[,mode='any.year',]
-        # first year version
-        fy <- d[,.SD[year=min(year)],by=key(d)]
-        e2 <- matchSurgesWithGold(fy,goldDT)
-        e2[,mode='first.year',]
-        this <- rbind(e1,e2)
-        this[,ma.window := w]
-        this[,measure := m]
-        this[,indicator:=i]
-        l[[length(l)+1]]<-this
+        d0<-loadSurgesData(dir,w,m,i)
+        setkey(d0,c1,c2)
+        originalSize <- nrow(d0)
+        for (maxSize in evalAt) {
+          d <- copy(d0)
+          if (!is.na(maxSize)) {
+            d <- head(d[order(-trend),])
+          }
+          # regular version
+          e1 <- matchSurgesWithGold(d,goldDT)
+          e1[,mode='any.year',]
+          # first year version
+          fy <- d[,.SD[year=min(year)],by=key(d)]
+          e2 <- matchSurgesWithGold(fy,goldDT)
+          e2[,mode='first.year',]
+          this <- rbind(e1,e2)
+          this[,ma.window := w]
+          this[,measure := m]
+          this[,indicator:=i]
+          this[,original.size=originalSize]
+          this[,eval.at=maxSize]
+          l[[length(l)+1]]<-this
+        }
       }
     }
   }
   rbindlist(l)
+}
+
+
+evalSingleCase <- function(dt, eval_windows,proportion=TRUE) {
+  l <- list()
+  for (w in eval_windows) {
+    n <- nrow(dt[!is.na(year.pred) & abs(year.gold-year.pred)<=w,])
+    if (proportion) {
+      n <- n / nrow(dt)
+    }
+    l[[length(l)+1]]<-data.table(perf=n,eval.window=w)
+  }
+  rbindlist(l)
+}
+
+evalSurgessAgainstGold <- function(goldDT, dir,evalAt=c(100,1000),eval_windows=c(1,3,5),ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'), indicators=c('diff','rate')) {
+  d <- collectEvalDataSurgesAgainstGold(goldDT, dir,evalAt,ma_windows,measures, indicators)
+  setkey(d,ma.window,measure,indicator,mode,eval.at)
+  d[,evalSingleCase(.SD, eval_windows),by=key(d)]
 }
