@@ -662,28 +662,29 @@ collectEvalDataSurgesAgainstGold <- function(goldDT, dir,evalAt=NA,ma_windows=c(
   for (w in ma_windows) {
     for (m in measures) {
       for (i in indicators) {
-        #        print(paste('w=',w,'m=',m,'i=',i))
+        print(paste('w=',w,'m=',m,'i=',i))
         d0<-loadSurgesData(dir,w,m,i)
         setkey(d0,c1,c2)
         originalSize <- nrow(d0)
         for (maxSize in evalAt) {
           d <- copy(d0)
+          # first year version
+          fy <- d[,.SD[year==min(year)],by=key(d)]
           if (!is.na(maxSize)) {
-            d <- head(d[order(-trend),])
+            d <- head(d[order(-trend),],maxSize)
+            fy <- head(fy[order(-trend),],maxSize)
           }
           # regular version
           e1 <- matchSurgesWithGold(d,goldDT)
-          e1[,mode='any.year',]
-          # first year version
-          fy <- d[,.SD[year=min(year)],by=key(d)]
+          e1[,mode:='any.year',]
           e2 <- matchSurgesWithGold(fy,goldDT)
-          e2[,mode='first.year',]
+          e2[,mode:='first.year',]
           this <- rbind(e1,e2)
           this[,ma.window := w]
           this[,measure := m]
           this[,indicator:=i]
-          this[,original.size=originalSize]
-          this[,eval.at=maxSize]
+          this[,original.size:=originalSize]
+          this[,eval.at:=maxSize]
           l[[length(l)+1]]<-this
         }
       }
@@ -709,4 +710,9 @@ evalSurgessAgainstGold <- function(goldDT, dir,evalAt=c(100,1000),eval_windows=c
   d <- collectEvalDataSurgesAgainstGold(goldDT, dir,evalAt,ma_windows,measures, indicators)
   setkey(d,ma.window,measure,indicator,mode,eval.at)
   d[,evalSingleCase(.SD, eval_windows),by=key(d)]
+}
+
+# perfDT <- evalSurgessAgainstGold(...)
+perfByParameter <- function(perfDT, param='ma.window') {
+    perfDT[,mean(perf),by=c('mode','eval.at',param)]
 }
