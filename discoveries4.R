@@ -3,6 +3,7 @@ library(data.table)
 library(ggplot2)
 library(plyr)
 library(cowplot)
+library(scales)
 
 
 # EM November 2021
@@ -257,9 +258,14 @@ computeAndSaveSurgesData <- function(dir='data/21-extract-discoveries/recompute-
   }
 }
 
-loadSurgesData <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED', ma_window=1,measure='prob.joint', indicator='diff') {
+loadSurgesData <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED', ma_window=1,measure='prob.joint', indicator='diff',dropMeasuresCols=FALSE) {
   f <- paste(dir,paste(measure,indicator,ma_window,'tsv',sep='.'),sep='/')
-  d<-fread(f)
+  if (dropMeasuresCols) {
+    d<-fread(f, drop=default_measures)
+  } else {
+    d<-fread(f)
+    
+  }
   setkey(d,c1,c2)
   d
 }
@@ -657,12 +663,12 @@ matchSurgesWithGold <- function(surgesDT, goldDT, selectedCols=c('c1','c2','year
 }
 
 
-collectEvalDataSurgesAgainstGold <- function(goldDT, dir,evalAt=NA,ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'), indicators=c('diff','rate')) {
+collectEvalDataSurgesAgainstGold <- function(goldDT, dir='data/21-extract-discoveries/recompute-with-ND-group/MED',evalAt=NA,ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'), indicators=c('diff','rate')) {
   l <- list()
   for (w in ma_windows) {
     for (m in measures) {
       for (i in indicators) {
-        print(paste('w=',w,'m=',m,'i=',i))
+#        print(paste('w=',w,'m=',m,'i=',i))
         d0<-loadSurgesData(dir,w,m,i)
         setkey(d0,c1,c2)
         originalSize <- nrow(d0)
@@ -716,3 +722,117 @@ evalSurgessAgainstGold <- function(goldDT, dir,evalAt=c(100,1000),eval_windows=c
 perfByParameter <- function(perfDT, param='ma.window') {
     perfDT[,mean(perf),by=c('mode','eval.at',param)]
 }
+
+
+displayAvgPerfByParam <- function(evalDT,fontsize=14, evalWindow=3) {
+  d <- evalDT[is.na(eval.at) & eval.window==evalWindow,]
+  # window
+  x<-perfByParameter(d,'ma.window')
+  x[,ma.window := as.factor(ma.window)]
+  g1 <- ggplot(x,aes(ma.window,V1,fill=mode))+geom_col(position='dodge')+theme(text=element_text(size=fontsize),legend.position="none")+ylab('Mean recall')
+  # measure
+  x<-perfByParameter(d,'measure')
+  x$measure[x$measure=='prob.joint'] <- 'prob'
+  g2<-ggplot(x,aes(measure,V1,fill=mode))+geom_col(position='dodge')+theme(text=element_text(size=fontsize),legend.position="none")+ylab(NULL)
+  # indicator
+  x<-perfByParameter(d,'indicator')
+  g3<-ggplot(x,aes(indicator,V1,fill=mode))+geom_col(position='dodge')+theme(text=element_text(size=fontsize))+ylab(NULL)
+  plot_grid(g1,
+            g2,
+            g3,
+            labels = NULL,
+            label_x = 0.2,
+            ncol = 3)
+  
+}
+
+
+
+readMultipleSurgesFiles <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED',ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'), indicators=c('diff','rate'), firstYear=TRUE) {
+  l <- list()
+  for (w in ma_windows) {
+    for (m in measures) {
+      for (i in indicators) {
+#        print(paste('w=',w,'m=',m,'i=',i))
+        d<-loadSurgesData(dir,w,m,i,dropMeasuresCols=TRUE)
+        setkey(d,c1,c2)
+        if (firstYear) {
+          d <- d[,.SD[year==min(year)],by=key(d)]
+        }
+        d[,ma.window := w]
+        d[,measure := m]
+        d[,indicator:=i]
+        l[[length(l)+1]]<-d
+      }
+    }
+  }
+  rbindlist(l)
+}
+
+
+# multiParamSurgesDT <- readMultipleSurgesFiles
+correlationMatrixMultiParam <- function(multiParamSurgesDT, yearWindow=NA) {
+  if (length(unique(multiParamSurgesDT$indicator))==1) {
+    multiParamSurgesDT[,config:=paste(measure,ma.window,sep='.')]
+  } else {
+    multiParamSurgesDT[,config:=paste(measure,ma.window,indicator,sep='.')]
+  }
+  buildCommonMatrix(multiParamSurgesDT,yearWindow)
+}
+
+
+
+calculateOverlapTwoConfigs <- function(multiSurgesDT, config1, config2,yearWindow=NA) {
+  d1 <- multiSurgesDT[config==config1,]
+  d2 <- multiSurgesDT[config==config2,]
+  merged <- merge(d1,d2,by=c('c1','c2'))
+  if (!is.na(yearWindow)) {
+    merged <- merged[abs(year.x-year.y)<=yearWindow,]
+  }
+  nrow(merged)/min(nrow(d1),nrow(d2))
+}
+
+# requires 'config' column
+# note: the matrix is long to compute, it can be saved with write.table(m,filename)
+buildCommonMatrix <-function(d, yearWindow=NA) {
+  configs <- sort(unique(d[,config]))
+  l <- list()
+  for (i in 1:(length(configs)-1)) {
+    cat(i)
+    cat(': ')
+    v <- rep(0,i)
+    for (j in (i+1):length(configs)) {
+      cat(j)
+      cat(' ')
+      x <- calculateOverlapTwoConfigs(d, configs[i],configs[j],yearWindow)
+      v <- c(v,x)
+    }
+    cat('\n')
+    l[[i]] <- v
+  }
+  l[[length(configs)]] <- rep(0,length(configs))
+  names(l) <- configs[1:(length(configs))]
+  x<-as.data.frame(l)
+  rownames(x) <- configs
+  as.matrix(x)
+}
+
+
+roundIfNotZero <- function(x,asPercentage,fonsize=12) {
+  res <- rep('',length(x))
+  if (asPercentage) {
+    res[x>0] <- round(x[x>0],digits=2)*100
+  } else {
+    res[x>0] <- round(x[x>0],digits=2)
+  }
+  res
+}
+
+heatMapCommonMatrix <- function(m, varname='overlap',asPercentage=TRUE) {
+  d<-reshape2::melt(m,value.name=varname) 
+  d$Var1 <- factor(d$Var1, levels = unique(d$Var1[order(d$Var1, d$Var1)]))
+  d$Var2 <- factor(d$Var2, levels = unique(d$Var2[order(d$Var2, d$Var2)]))
+  ggplot(d, aes(Var1, Var2)) +
+    geom_tile(aes_string(fill = varname)) + geom_text(aes(label = roundIfNotZero(overlap,asPercentage))) + scale_fill_gradient(low = "white", high = "red",labels = percent) + xlab(NULL)+ylab(NULL)+theme(axis.text.x=element_text(angle = -90, hjust = 0),text=element_text(size=20),legend.position = c(.15, .75))
+}
+

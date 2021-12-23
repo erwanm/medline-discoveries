@@ -190,3 +190,57 @@ g
 ggsave('expl-trend-distrib.pdf',g,width=20,height=8,units = "cm")
 ```
 
+
+# Evaluation 
+
+## Gold standard data
+
+TODO
+
+```{r gold}
+gold <- loadGoldDiscoveries(todo)
+```
+
+## Evaluation
+
+
+```{r eval}
+res.eval<-evalSurgessAgainstGold(gold,'data/21-extract-discoveries/recompute-with-ND-group/MED',evalAt=NA)
+```
+
+### Top individual configurations
+
+```{r eval.params.indiv}
+eval3 <- res.eval[eval.window==3,]
+```
+
+### Comparison by parameter
+
+
+```{r eval.params.plot}
+g<-displayAvgPerfByParam(rr,evalWindow = 3)
+g
+```
+
+```{r, echo=savePaperGraphs, eval=savePaperGraphs}
+ggsave('plot-params.pdf',g,width = 20,height=8,unit='cm')
+```
+
+
+
+
+The overlap coefficient is calculated based on the number of relations in common between the two configurations, where "in common" means that the relation appears in both lists with their surge year within 5 years of each other.  
+
+* Note: in the code below the window of years (5) can be set to NA. In this case the overlap coefficient is only based on relations in common (no year comparison).
+
+```{r eval.overlap}
+d<-readMultipleSurgesFiles(measures=c('prob.joint','nmi','npmi','scp','pmi','mi'),indicator='diff')
+mat<-correlationMatrixMultiParam(d, 5)
+g<-heatMapCommonMatrix(mat)
+g
+```
+
+```{r eval.overlap.save, echo=savePaperGraphs, eval=savePaperGraphs}
+ggsave('heatmap-overlap.pdf',g,width=20,height=15,unit='cm')
+
+```
