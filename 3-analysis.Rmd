@@ -201,7 +201,7 @@ TODO
 gold <- loadGoldDiscoveries(todo)
 ```
 
-## Evaluation
+## Parameters
 
 
 ```{r eval}
@@ -211,7 +211,8 @@ res.eval<-evalSurgessAgainstGold(gold,'data/21-extract-discoveries/recompute-wit
 ### Top individual configurations
 
 ```{r eval.params.indiv}
-eval3 <- res.eval[eval.window==3,]
+eval3 <- res.eval[eval.window==3 & mode=='first.year',]
+
 ```
 
 ### Comparison by parameter
@@ -227,7 +228,7 @@ ggsave('plot-params.pdf',g,width = 20,height=8,unit='cm')
 ```
 
 
-
+### Overlap by pair of configurations
 
 The overlap coefficient is calculated based on the number of relations in common between the two configurations, where "in common" means that the relation appears in both lists with their surge year within 5 years of each other.  
 
@@ -243,4 +244,14 @@ g
 ```{r eval.overlap.save, echo=savePaperGraphs, eval=savePaperGraphs}
 ggsave('heatmap-overlap.pdf',g,width=20,height=15,unit='cm')
 
+```
+
+## Distribution of surges across time
+
+```{r eval.years}
+g<-plotSurgesAcrossTime(bins=68,fontsize=16)
+```
+
+```{r eval.years.save, echo=savePaperGraphs, eval=savePaperGraphs}
+ggsave('surges-by-year.pdf',g,width=20,height=12,unit='cm')
 ```

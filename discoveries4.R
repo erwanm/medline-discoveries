@@ -55,7 +55,9 @@ loadStaticData <- function(dir='data/21-extract-discoveries/recompute-with-ND-gr
   setkey(indiv,concept)
   totaldocs <- read.table(paste(dir, totalFile,sep='/'))[1,1]
   if (merged) {
-    mergeStaticJointWithIndivData(joint, indiv, totaldocs)
+    r<-mergeStaticJointWithIndivData(joint, indiv, totaldocs)
+    setkey(r,c1,c2)
+    r
   } else {
     list(joint=joint,indiv=indiv,total=totaldocs)
   }
@@ -818,7 +820,7 @@ buildCommonMatrix <-function(d, yearWindow=NA) {
 }
 
 
-roundIfNotZero <- function(x,asPercentage,fonsize=12) {
+roundIfNotZero <- function(x,asPercentage) {
   res <- rep('',length(x))
   if (asPercentage) {
     res[x>0] <- round(x[x>0],digits=2)*100
@@ -836,3 +838,10 @@ heatMapCommonMatrix <- function(m, varname='overlap',asPercentage=TRUE) {
     geom_tile(aes_string(fill = varname)) + geom_text(aes(label = roundIfNotZero(overlap,asPercentage))) + scale_fill_gradient(low = "white", high = "red",labels = percent) + xlab(NULL)+ylab(NULL)+theme(axis.text.x=element_text(angle = -90, hjust = 0),text=element_text(size=20),legend.position = c(.15, .75))
 }
 
+
+plotSurgesAcrossTime <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED',window=3,measure='scp',indicator='diff',bins=30,fontsize=14) {
+  d<-loadSurgesData(dir, ma_window = window,measure=measure,indicator=indicator)
+  d[,first.surge:=(year==min(year)),by=key(d)]
+  ggplot(d,aes(year,fill=first.surge))+geom_histogram(position='stack',bins=bins)+theme(text=element_text(size=fontsize))
+  
+}
