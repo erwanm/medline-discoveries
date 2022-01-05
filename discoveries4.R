@@ -253,7 +253,7 @@ computeAndSaveSurgesData <- function(dir='data/21-extract-discoveries/recompute-
           computeTrend(relations, indicator=i,measure=m)
           threshold <- calculateThresholdInflectionPoint(relations$trend)
           detectSurges(relations, globalThreshold=threshold)
-          adjustZeroFreqSurges(relations,window=w)
+          addNextNonZeroYear(relations)
           fwrite(relations[surge==TRUE,],f,sep='\t')
       }
     }
@@ -273,8 +273,10 @@ loadSurgesData <- function(dir='data/21-extract-discoveries/recompute-with-ND-gr
 }
 
 
+# OBSOLETE
+# for a single concept/relation
 # returns only the 'surge' column
-adjustZeroFreqSurgesSingleRelation <- function(dt,window) {
+adjustZeroFreqSurgesSingleRelation.OBSOLETE <- function(dt,window) {
   half_window <- ceiling((window-1)/2)
   zeroFreqSurgeYears <- dt[surge==TRUE & freq.joint==0,year]
   firstNonZeroYears <- unique(
@@ -295,10 +297,23 @@ adjustZeroFreqSurgesSingleRelation <- function(dt,window) {
   newSurge
 }
 
-adjustZeroFreqSurges <- function(surgesDT, window) {
-  if (window>1) {
-    surgesDT[,surge:=adjustZeroFreqSurgesSingleRelation(.SD,window),by=key(surgesDT)]
-  }
+
+# for a single concept/relation
+# receives a vector of years and a dt with colymns 'year' and 'freq.joint'
+getNextNonZeroYear <- function(y, dt) {
+  laply(y, function(y0) { 
+    l <- dt[year>=y0 & freq.joint>0,year]
+    if (length(l)>0) {
+      min(l) 
+    } else {
+      NA
+    }
+  })
+} 
+
+# receives a dt with colymns 'year' and 'freq.joint'
+addNextNonZeroYear <- function(dt) {
+   dt[,next.nonzero.year := getNextNonZeroYear(year, dt),by=key(dt)]
 }
 
 
@@ -839,9 +854,53 @@ heatMapCommonMatrix <- function(m, varname='overlap',asPercentage=TRUE) {
 }
 
 
-plotSurgesAcrossTime <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED',window=3,measure='scp',indicator='diff',bins=30,fontsize=14) {
-  d<-loadSurgesData(dir, ma_window = window,measure=measure,indicator=indicator)
-  d[,first.surge:=(year==min(year)),by=key(d)]
-  ggplot(d,aes(year,fill=first.surge))+geom_histogram(position='stack',bins=bins)+theme(text=element_text(size=fontsize))
-  
+#plotSurgesAcrossTime <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED',window=3,measure='scp',indicator='diff',bins=30,fontsize=14) {
+#  d<-loadSurgesData(dir, ma_window = window,measure=measure,indicator=indicator)
+#  d[,first.surge:=(year==min(year)),by=key(d)]
+#  ggplot(d,aes(year,fill=first.surge))+geom_histogram(position='stack',bins=bins)+theme(text=element_text(size=fontsize))
+#}
+
+
+doublePlotAcrossTime <- function(dynamicJointDT, surgesDT,bins=71,fontsize=14,marginAdjustMm=2,withLegend=TRUE) {
+  firstcooc <- dynamicJointDT[,.SD[year==min(year),],by=key(dynamicJointDT)]
+  plot.cooc <- ggplot(firstcooc,aes(year))+geom_histogram(bins=bins)+theme(text=element_text(size=fontsize),plot.margin = margin(0, marginAdjustMm, 0, 0, "mm"))+xlim(c(1950,2020))+xlab(NULL)+ylab(NULL)+ggtitle('First cooccurrences')
+  surgesDT[,first.surge:=(year==min(year)),by=key(surgesDT)]
+  plot.surges <- ggplot(surgesDT,aes(year,fill=first.surge))+geom_histogram(position='stack',bins=bins)+xlim(c(1950,2020))+xlab(NULL)+ylab(NULL)+ggtitle('Surges')
+  if (withLegend) {
+    plot.surges <- plot.surges +theme(text=element_text(size=fontsize),legend.position = c(.88, .75),plot.margin = margin(0, 0, 0, marginAdjustMm, "mm"))
+  } else {
+    plot.surges <- plot.surges +theme(text=element_text(size=fontsize),legend.position = 'none',plot.margin = margin(0, 0, 0, marginAdjustMm, "mm"))
+  }
+  plot_grid(plot.cooc,
+            plot.surges,
+            labels = NULL,
+            label_x = 0.2,
+            nrow = 2)
+}
+
+calculateDiffYears <- function(surgesDT, indivDT) {
+  firstocc <- indivDT[,.SD[year==min(year),],by=key(indivDT)]
+  firstocc[,freq:=NULL]
+  d<-merge(surgesDT,firstocc,by.x='c1',by.y='concept',suffixes=c('','.first.c1'))
+  d<-merge(d,firstocc,by.x='c2',by.y='concept',suffixes=c('','.first.c2'))
+  d[,year.first.both:=pmax(year.first.c1,year.first.c2)]
+  d[,duration:=year-year.first.both]
+  d
+}
+
+plotDiffYears <- function(surgesDT, indivDT,bins=71,fontsize=14) {
+  surgesDT[,first.surge:=(year==min(year)),by=key(surgesDT)]
+  d <- calculateDiffYears(surgesDT, indivDT)
+  setnames(d,'duration','years')
+  ggplot(d,aes(years,fill=first.surge))+geom_histogram(position='stack',bins=bins)+ggtitle('Time before surge')+theme(text=element_text(size=fontsize),legend.position = 'bottom',legend.direction = "vertical")+ylab(NULL)
+}
+
+threePlotsAboutYears <- function(surgesDT,indivDT,jointDT,bins=71,fontsize=14,marginAdjustMm=2) {
+  g1 <- doublePlotAcrossTime(jointDT, surgesDT,bins,fontsize,marginAdjustMm,withLegend = FALSE)
+  g2 <- plotDiffYears(surgesDT,indivDT, bins,fontsize)
+  plot_grid(g1,
+            g2,
+            labels = NULL,
+            rel_widths = c(2,1),
+            ncol = 2)
 }

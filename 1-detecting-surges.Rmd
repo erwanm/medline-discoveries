@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 dataPath <- '../data/21-extract-discoveries/recompute-with-ND-group/MED'
 dataPathStatic <- paste(dataPath,'across-all-years',sep='/')
 # set to TRUE for short execution with a subset of data
-shortVersion <- FALSE
+shortVersion <- TRUE
 ```
 
 
@@ -139,10 +139,10 @@ detectSurges(rel.measures, globalThreshold=threshold)
 
 # Adjusting the surge year in the sliding window
 
-Using a moving average window (size higher than 1) can cause the surge year to be detected too early. This can lead to a meaningless result, in particular if the surge year may have zero cooccurrences. This step performs a simple adjustment to the next year with non-zero frequency in cases where this problem happens.
+Using a moving average window (size higher than 1) can cause the surge year to be detected too early. This can lead to a meaningless result, in particular if the surge year has no cooccurrence at all. This step calculates the next non-zero year for every year and every relation. This "adjusted year" can be used to replace the surge year in some applications. 
 
 ```{r adjust}
-adjustZeroFreqSurges(rel.measures,window=5)
+addNextNonZeroYear(rel.measures)
 ```
 
 
