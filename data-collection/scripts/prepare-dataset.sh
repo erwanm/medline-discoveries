@@ -13,7 +13,7 @@ function usage {
     echo "  Options:"
     echo "    -h: print this help message."
     echo "    -p: PTC data with <concept>@<type> format"
-    echo "    -m <min freq> default: 100"
+    echo "    -m <min freq> default: $minFreq"
     echo ""
 }
 
@@ -48,7 +48,9 @@ outputDir="$3"
 
 rm -f "$indivFreqDir"/*.err "$jointFreqDir"/*.err
 
-acrossDir="$outputDir/across-all-years"
+[ -d "$outputDir" ] || mkdir "$outputDir"
+
+acrossDir="$outputDir/static"
 [ -d "$acrossDir" ] || mkdir "$acrossDir"
 
 # generate indiv data across years with filtered min freq version

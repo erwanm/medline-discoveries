@@ -3,7 +3,7 @@
 #set -x
 
 minFreq=100
-topPMI=100
+topPMI=0
 optAddTerm=""
 optPTC=""
 
@@ -22,8 +22,9 @@ function usage {
     echo "    -h: print this help message."
     echo "    -p: PTC data: MeSH decriptors with prefix (for add-terms)"
     echo "    -m: MED data: MeSH descriptors (for add-terms)"
-    echo "    -f <min freq> default: 100. input files named <indiv|joint>.full.min<min freq>"
-    echo "    -t <n> number of top PMI/NPMI to extract from the ND 'across years' data."
+    echo "    -f <min freq> default: $minFreq. input files named <indiv|joint>.full.min<min freq>"
+    echo "    -t <n> number of top PMI/NPMI to extract from the ND static data. 0 for ignoring this step"
+    echo "       completely. Default: $topPMI."
     echo ""
 }
 
@@ -66,11 +67,11 @@ indivNDFile="$inputDir/indiv.ND.min${minFreq}"
 jointNDFile="$inputDir/joint.ND.min${minFreq}"
 totalFile="$inputDir/full.total"
 
-noYearDir="$inputDir/across-all-years"
+noYearDir="$inputDir/static"
 noYearIndiv="$noYearDir/indiv.min${minFreq}"
 noYearJoint="$noYearDir/joint.min${minFreq}"
 
-# 1. filter ND cooccurrences in the "across years" data
+# 1. filter ND cooccurrences in the static data
 
 #  1. METHOD A
 tmpIndiv=$(mktemp --tmpdir=/tmp "$(basename $0).indiv.XXXXXXXXXX")
@@ -97,23 +98,28 @@ rm -f "$tmpIndiv"
 #rm -f "$tmpIndiv"
 
 # 2. calculate PMI in the "across years" data
-calculate-association-measure.py -m pmi,npmi "$noYearJoint.ND" "$noYearIndiv.ND" "$noYearDir/indiv.full.total" "$noYearJoint.ND.pmi"
-#   filter positive PMI pairs
-echo 0 | filter-column.py -m "$noYearJoint.ND.pmi" 4 >"$noYearJoint.ND.pos-pmi"
-#   extract top N PMI and NPMI
-sort -r -g -k4,4 "$noYearJoint.ND.pmi" | head -n $topPMI >"$noYearJoint.ND.pmi.top${topPMI}"
-sort -r -g -k5,5 "$noYearJoint.ND.pmi" | head -n $topPMI >"$noYearJoint.ND.npmi.top${topPMI}"
-# merge the two top lists
-tmpBoth=$(mktemp --tmpdir=/tmp "$(basename $0).both.XXXXXXXXXX")
-cat "$noYearJoint.ND.pmi.top${topPMI}" "$noYearJoint.ND.npmi.top${topPMI}" | sort -u >"$tmpBoth"
-# add term and category for top N
-ls "$tmpBoth" | add-term-from-umls.py $optAddTerm -i 1 -g "$semGroups" "$umlsDir" .term1
-ls "$tmpBoth.term1" | add-term-from-umls.py $optAddTerm -i 2 -g "$semGroups" "$umlsDir" .term2
-mv "$tmpBoth.term1.term2" "$noYearJoint.ND.top-pmi-npmi"
-rm -f $tmpBoth $tmpBoth.term1
+if [ $topPMI -gt 0 ]; then
+    calculate-association-measure.py -m pmi,npmi "$noYearJoint.ND" "$noYearIndiv.ND" "$noYearDir/indiv.full.total" "$noYearJoint.ND.pmi"
+    #   filter positive PMI pairs
+    echo 0 | filter-column.py -m "$noYearJoint.ND.pmi" 4 >"$noYearJoint.ND.pos-pmi"
+    #   extract top N PMI and NPMI
+    sort -r -g -k4,4 "$noYearJoint.ND.pmi" | head -n $topPMI >"$noYearJoint.ND.pmi.top${topPMI}"
+    sort -r -g -k5,5 "$noYearJoint.ND.pmi" | head -n $topPMI >"$noYearJoint.ND.npmi.top${topPMI}"
+    # merge the two top lists
+    tmpBoth=$(mktemp --tmpdir=/tmp "$(basename $0).both.XXXXXXXXXX")
+    cat "$noYearJoint.ND.pmi.top${topPMI}" "$noYearJoint.ND.npmi.top${topPMI}" | sort -u >"$tmpBoth"
+    # add term and category for top N
+    ls "$tmpBoth" | add-term-from-umls.py $optAddTerm -i 1 -g "$semGroups" "$umlsDir" .term1
+    ls "$tmpBoth.term1" | add-term-from-umls.py $optAddTerm -i 2 -g "$semGroups" "$umlsDir" .term2
+    mv "$tmpBoth.term1.term2" "$noYearJoint.ND.top-pmi-npmi"
+    rm -f $tmpBoth $tmpBoth.term1
+fi
 
 # 3. apply filter to "by year" data
 cut -f 1 "$noYearIndiv.ND" | filter-column.py $optPTC "$indivFullFile" 2 >"$indivNDFile"
 cut -f 1,2 "$noYearJoint.ND" | filter-column.py $optPTC "$jointFullFile" 2,3 >"$jointNDFile"
-cut -f 1,2 "$noYearJoint.ND.pos-pmi" | filter-column.py $optPTC "$jointFullFile" 2,3 >"$jointNDFile.pos-pmi"
+if [ $topPMI -gt 0 ]; then
+    cut -f 1,2 "$noYearJoint.ND.pos-pmi" | filter-column.py $optPTC "$jointFullFile" 2,3 >"$jointNDFile.pos-pmi"
+fi
+
 
