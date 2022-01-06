@@ -17,8 +17,7 @@ source('discoveries4.R')
 knitr::opts_chunk$set(echo = TRUE)
 # TODO temporary path
 dataPath <- '../data/21-extract-discoveries/recompute-with-ND-group/MED'
-dataPathStatic <- paste(dataPath,'across-all-years',sep='/')
-indivFileStatic <- 'indiv.min100.ND.terms'
+dataPathStatic <- paste(dataPath,'static',sep='/')
 # set to TRUE for short execution with a subset of data
 shortVersion <- TRUE
 savePaperGraphs <- TRUE

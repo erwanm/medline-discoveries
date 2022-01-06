@@ -9,24 +9,83 @@ output: html_document
 ```{r setup, include=FALSE}
 library(knitr)
 library(rmarkdown)
-library(ggplot2)
-source('discoveries4.R')
 knitr::opts_chunk$set(echo = TRUE)
-# TODO temporary path
-dataPath <- '../data/21-extract-discoveries/recompute-with-ND-group/MED'
-dataPathStatic <- paste(dataPath,'across-all-years',sep='/')
+```
+
+
+# medline-discoveries: detecting surges (main documentation)
+
+## Overview
+
+- This is the documentation for the [Medline Discoveries repository](https://github.com/erwanm/medline-discoveries), which is the companion code for the paper "Mining impactful discoveries from the biomedical literature" **TODO link**.
+- This document was generated from an [R Markdown](https://rmarkdown.rstudio.com/) source file. The source file is provided in the repository, allowing full reproducibility of the experiments presented in the paper.
+- There are actually three parts in the documentation:
+     - The [data collection](https://erwanm.github.io/medline-discoveries/data-collection) process describes how the input data was created.
+     - The ["Detecting surges" main documentation](https://erwanm.github.io/medline-discoveries/1-detecting-surges.html) (this document) describes how to generate the output data (i.e. detecting surges) using the provided R implementation.
+     - The ["Analysis" part](https://erwanm.github.io/medline-discoveries/2-analysis.html) proposes some additional analysis of the results, including how to generate the graphs and tables found in the paper.  
+
+## Requirements
+
+## Software
+
+This code requires R and a few R libraries:
+- `data.table`
+- `ggplot2`
+- `plyr`
+- `cowplot`
+- `scales`
+- `knitr` and `rmarkdown` (only if executing the Rmd source files)
+
+## Data
+
+The input data used for the experiment described in the paper can be obtained at **TODO link**. The process used to collect this data is described in the [data collection part](https://erwanm.github.io/medline-discoveries/data-collection).
+
+### Input data format
+
+The input data format is purposefully simple in order to permit the use of the software with different sources of data. There are two "variants" of the data:
+
+* The **dynamic** data contains the frequency value for every years
+* The **static** data contains the cumulated frequency across all years. 
+    * By default located in a subdirectory `static`.
+    
+Both are made of two files, one for the individual frequency by concept and the other for the joint frequency by pair of concepts. The format for each file is as follows:
+
+* `indiv.<suffix>`: `<year> <concept> <frequency> <multi frequency>`
+    * The last column `<multi frequency>` is ignored.
+* `joint.<suffix>`: `<year> <concept1> <concept2> <frequency>`
+* `static/indiv.<suffix>`: `<concept> <frequency> [multi frequency] <term> <group>`
+    * The last two columns are required for displaying the name of the concept/relation or filtering by semantic group. 
+* `static/joint.<suffix>`: `<concept1> <concept2> <frequency>`
+
+
+In the joint files, it is expected that every pair of concepts (A,B) appears only once in the data for a given year (i.e. not "A B" and also "B A"). This condition can be satisfied by ordering every pair of concepts alphabetically: A < B.
+
+
+
+# Main process
+
+*Note: the full process is described in detail below. Readers who are only interested in the simplest way to run the process can go directly to the last part ["Processing multiple parameters and saving surges data"](#processing-multiple-parameters-and-saving-surges-data).*
+
+## Initialization
+
+The code can be loaded in the R interpreter with:
+
+```{r sourcing}
+source('discoveries.R')
+```
+
+### Rmd Options
+
+This R Markdown document can be configured by modifying the following lines:
+
+```{r myoptions}
 # set to TRUE for short execution with a subset of data
+dataPath <- 'data/medline/input'
 shortVersion <- TRUE
 ```
 
 
-# Preparing the input data
-
-The initial raw data is extracted from the Medline database using the ... KD, tdc tools, steps  
-
-TODO
-
-# Loading the input data
+## Loading the input data
 
 
 
@@ -42,7 +101,7 @@ dynamic_joint<-pickRandomDynamic(dynamic_joint,n=1000)
 
 
 
-## Statistics
+### Statistics
 
 * Number of concepts:
 
@@ -64,7 +123,7 @@ nrow(dynamic_joint)
 
 
 
-# Preprocessing
+## Preprocessing
 
 This step fills the gap years with 0 frequency values and calculates the moving average if needed.
 
@@ -84,7 +143,7 @@ nrow(relations.ma)
 ```
 
 
-# Caculating a set of measures by year
+## Caculating a set of measures by year
 
 In this the measure used as a basis for calculating the trend (next step) is calculated. 
 
@@ -100,7 +159,7 @@ Available measures:
 rel.measures<-addDynamicAssociationToRelations(relations.ma,indiv.ma,measures = c('prob.joint','pmi','nmi'))
 ```
 
-# Calculating the trend for every year and every relation
+## Calculating the trend for every year and every relation
 
 This step calculates the `trend` for every year and every relation, then labels each year as a surge or not (column `surge`). 
 
@@ -118,7 +177,7 @@ computeTrend(rel.measures, indicator='diff', measure='nmi')
 
 - Note: there is no need to store the output data table since `relations` is modified by reference.
 
-# Detecting surges
+## Detecting surges
 
 For every relation, this step marks the years where the trend value is higher than some threshold $t$ as surge. 
 TODO update
@@ -137,7 +196,7 @@ detectSurges(rel.measures, globalThreshold=threshold)
 ```
 
 
-# Adjusting the surge year in the sliding window
+## Adjusting the surge year in the sliding window (optional)
 
 Using a moving average window (size higher than 1) can cause the surge year to be detected too early. This can lead to a meaningless result, in particular if the surge year has no cooccurrence at all. This step calculates the next non-zero year for every year and every relation. This "adjusted year" can be used to replace the surge year in some applications. 
 
@@ -146,7 +205,7 @@ addNextNonZeroYear(rel.measures)
 ```
 
 
-# Statistics surges
+### Statistics surges
 
 
 ```{r}
@@ -160,7 +219,7 @@ ggplot(surges_stats,aes(n.surges,prop))+geom_col()
 ```
 
 
-# Processing multiple parameters and saving surges data
+## Processing multiple parameters and saving surges data
 
 
 A convenience function is provided which computes the surges based on multiple parameters and saves the resulting data to a file. This function encapsulates all the steps presented above.
