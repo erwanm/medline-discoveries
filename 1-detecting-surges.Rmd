@@ -57,6 +57,10 @@ Both are made of two files, one for the individual frequency by concept and the 
     * The last two columns are required for displaying the name of the concept/relation or filtering by semantic group. 
 * `static/joint.<suffix>`: `<concept1> <concept2> <frequency>`
 
+Additionally the two corresponding "totals" files are needed:
+
+* `indiv.<suffix>.total`: `<year> <total unique concepts> <total documents> <total concepts occurrences>` 
+* `static/indiv.<suffix>.total`: `<total documents> <total concepts occurrences>` 
 
 In the joint files, it is expected that every pair of concepts (A,B) appears only once in the data for a given year (i.e. not "A B" and also "B A"). This condition can be satisfied by ordering every pair of concepts alphabetically: A < B.
 
