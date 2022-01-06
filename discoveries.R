@@ -11,7 +11,6 @@ library(scales)
 # New version of the "discoveries" code:
 #  - using data.table library for efficiency
 #  - meant to be usable in a Shiny app for convenient visualization
-#  - 3 main parts: detect surges across years; filter out trivial cases with high conditional prob; order by [N]PMI
 #  - dropping support for sources other than Medline MeSH descriptors (KD, PTC)
 #  - dropping "previous vs next" option (and possibly some indicator options as well)
 #  - adding option to use other values than raw frequency for detecting surges (but preliminary experiments with PMI don't give good results) 
@@ -20,9 +19,13 @@ library(scales)
 # Terminology: 'dynamic' means data by year ('year' column present), 'static' means data across all years (no 'year' column)
 #
 
+default_measures = c('prob.joint','scp', 'pmi', 'npmi', 'mi', 'nmi', 'pmi2', 'pmi3')
+
+
+##### LOAD/SAVE FUNCTIONS
 
 # returns the indiv or joint data as a data table, with result DT key set as the concept or pair of concepts
-loadDynamicData <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED',indivOrJoint='indiv',suffix='ND.min100', minYear=1950, maxYear=2020) {
+loadDynamicData <- function(dir='data/input',indivOrJoint='indiv',suffix='ND.min100', minYear=1950, maxYear=2020) {
   f <- paste(dir,paste(indivOrJoint,suffix,sep='.'),sep='/')
   if (indivOrJoint == 'indiv') {
     d<-fread(f,col.names=c('year','concept','freq'),drop=4)
@@ -35,7 +38,7 @@ loadDynamicData <- function(dir='data/21-extract-discoveries/recompute-with-ND-g
 }
 
 
-loadDynamicTotalFile <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED', filename='indiv.full.total', minYear=1950, maxYear=2020) {
+loadDynamicTotalFile <- function(dir='data/input', filename='indiv.full.total', minYear=1950, maxYear=2020) {
   f <- paste(dir, filename, sep='/')
   d<-fread(f, col.name=c('year','total'),drop=c(2,4))
   d[d$year>=minYear & d$year<=maxYear,]
@@ -48,7 +51,7 @@ loadDynamicTotalFile <- function(dir='data/21-extract-discoveries/recompute-with
 #   has the full information.
 # - If merged=FALSE then the joint and indiv data are returned separately as a list.
 #
-loadStaticData <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED/across-all-years/',jointFile='joint.min100.ND',indivFile='indiv.min100.ND.terms', totalFile='indiv.full.total',merged=TRUE) {
+loadStaticData <- function(dir='data/input/static/',jointFile='joint.min100.ND',indivFile='indiv.min100.ND.terms', totalFile='indiv.full.total',merged=TRUE) {
   joint <- fread(paste(dir, jointFile,sep='/'),col.names=c('c1','c2','freq'))
   setkey(joint,c1,c2)
   indiv <- fread(paste(dir, indivFile,sep='/'),col.names=c('concept','freq','term','group'),drop=3)
@@ -64,34 +67,79 @@ loadStaticData <- function(dir='data/21-extract-discoveries/recompute-with-ND-gr
 }
 
 
-#
-mergeStaticJointWithIndivData <- function(jointDT, indivDT, addTotalCol=NULL) {
-  d0 <- merge(jointDT, indivDT, by.x='c2',by.y='concept', suffixes=c('.joint',''))
-  d0 <- merge(d0, indivDT, by.x='c1', by.y='concept', suffixes=c('.c2','.c1'))
-  if (!is.null(addTotalCol)) {
-    d0[,total := addTotalCol,]
+
+computeAndSaveSurgesData <- function(dir='data/input', outputFilePrefix='data/output/', ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'), indicators=c('rate','diff')) {
+  if (!dir.exists(dir)) {
+    dir.create(dir,recursive = TRUE)
   }
-  d0
+  dynamic_joint <- loadDynamicData(dir,indivOrJoint = 'joint')
+  # for debugging:
+  # dynamic_joint<-pickRandomDynamic(dynamic_joint,n=1000)
+  dynamic_indiv <- loadDynamicData(dir,indivOrJoint = 'indiv')
+  dynamic_total <- loadDynamicTotalFile(dir)
+  for (w in ma_windows) {
+    joint.ma <- computeMovingAverage(dynamic_joint,dynamic_total, window=w)
+    indiv.ma <- computeMovingAverage(dynamic_indiv,dynamic_total, window=w)
+    for (m in measures) {
+      for (i in indicators) {
+        f <- paste0(outputFilePrefix,paste(m,i,w,'tsv',sep='.'))
+        print(paste('processing and saving to', f))
+        relations<-addDynamicAssociationToRelations(joint.ma,indiv.ma,measures = m)
+        computeTrend(relations, indicator=i,measure=m)
+        threshold <- calculateThresholdInflectionPoint(relations$trend)
+        detectSurges(relations, globalThreshold=threshold)
+        addNextNonZeroYear(relations)
+        fwrite(relations[surge==TRUE,],f,sep='\t')
+      }
+    }
+  }
 }
 
-pickRandomDynamic <- function(d, n=1, minFreqYear=0) {
-  if (minFreqYear>0) {
-    dmin <- d[freq>=minFreqYear,]
-    u <- unique(dmin,by=key(dmin))
+
+
+loadSurgesData <- function(dir='data/output', ma_window=1,measure='prob.joint', indicator='diff',dropMeasuresCols=FALSE) {
+  f <- paste(dir,paste(measure,indicator,ma_window,'tsv',sep='.'),sep='/')
+  if (dropMeasuresCols) {
+    d<-fread(f, drop=default_measures)
   } else {
-    u <- unique(d,by=key(d))
+    d<-fread(f)
+    
   }
-  print(paste('selecting among n pairs = ',nrow(u)))
-  indexes <- sample(nrow(u),n)
-  key <- key(d)
-  picked <- u[indexes,..key]
-  merge(d,picked)
+  setkey(d,c1,c2)
+  d
 }
 
-filterConcepts <- function(d, concepts) {
-  d[c1 %in% concepts | c2 %in% concepts,]
+
+loadGoldDiscoveries <- function(dir='data',file='ND-discoveries-year.tsv') {
+  fread(paste(dir,file,sep='/'),drop=c('source','notes'))
 }
 
+
+readMultipleSurgesFiles <- function(dir='data/output',ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'), indicators=c('diff','rate'), firstYear=TRUE) {
+  l <- list()
+  for (w in ma_windows) {
+    for (m in measures) {
+      for (i in indicators) {
+        #        print(paste('w=',w,'m=',m,'i=',i))
+        d<-loadSurgesData(dir,w,m,i,dropMeasuresCols=TRUE)
+        setkey(d,c1,c2)
+        if (firstYear) {
+          d <- d[,.SD[year==min(year)],by=key(d)]
+        }
+        d[,ma.window := w]
+        d[,measure := m]
+        d[,indicator:=i]
+        l[[length(l)+1]]<-d
+      }
+    }
+  }
+  rbindlist(l)
+}
+
+
+
+
+##### MAIN PROCESS
 
 # moving average on a vector 'x' with window size 'window' (centered).
 ma <- function(x,n=5,padWithNA=FALSE) {
@@ -150,6 +198,74 @@ computeMovingAverage <- function(mainDT, totalsDT, window=1) {
   mainDT[,ma.total := selectTotalYears(totalsDT,min(year),max(year)),by=key(mainDT)]
   mainDT
 }
+
+
+
+#
+# if normalized is FALSE returns the binary MI.
+# if normalized is TRUE, returns a list (mi, nmi): the first is regular (binary) MI and the second is normalized MI (NMI)
+#
+binaryMI <- function(pA, pB, pA_B, normalized=FALSE) {
+  pNA_B <- pB - pA_B
+  pA_NB <- pA - pA_B
+  pNA_NB <- 1 - ( pA_B + pNA_B + pA_NB)
+  mi <- rep(0, length(pA_B))
+  mi[pNA_NB>0] <- mi[pNA_NB>0] + pNA_NB[pNA_NB>0] * log2( pNA_NB[pNA_NB>0] / ((1-pA[pNA_NB>0]) * (1-pB[pNA_NB>0])) )
+  mi[pNA_B>0] <- mi[pNA_B>0] + pNA_B[pNA_B>0] * log2( pNA_B[pNA_B>0] / ((1-pA[pNA_B>0]) * pB[pNA_B>0]) )
+  mi[pA_NB>0] <- mi[pA_NB>0] + pA_NB[pA_NB>0] * log2( pA_NB[pA_NB>0] / (pA[pA_NB>0] * (1-pB[pA_NB>0])) )
+  mi[pA_B>0] <- mi[pA_B>0] + pA_B[pA_B>0] * log2( pA_B[pA_B>0] / (pA[pA_B>0] * pB[pA_B>0]) )
+  if (normalized) {
+    norm <- rep(0, length(pA_B))
+    norm[pNA_NB>0] <- norm[pNA_NB>0] + pNA_NB[pNA_NB>0] * log2( pNA_NB[pNA_NB>0]  )
+    norm[pNA_B>0] <- norm[pNA_B>0] + pNA_B[pNA_B>0] * log2( pNA_B[pNA_B>0]  )
+    norm[pA_NB>0] <- norm[pA_NB>0] + pA_NB[pA_NB>0] * log2( pA_NB[pA_NB>0]  )
+    norm[pA_B>0] <- norm[pA_B>0] + pA_B[pA_B>0] * log2( pA_B[pA_B>0] )
+    list(mi=mi, nmi=mi/-norm)
+  } else {
+    mi
+  }
+}
+
+#
+calculateAssociation <- function(dt, filterMeasures=default_measures,col1='freq.c1',col2='freq.c2',colJoint='freq.joint',colTotal='total') { 
+  v1 <- as.name(col1)
+  v2 <- as.name(col2)
+  joint<-as.name(colJoint)
+  total <- as.name(colTotal)
+  dt[,prob.joint := eval(joint) / eval(total),]
+  dt[,prob.c1 := eval(v1) / eval(total),]
+  dt[,prob.c2 := eval(v2) / eval(total),]
+  dt[,prob.C1GivenC2 := eval(joint) / eval(v2),]
+  dt[,prob.C2GivenC1 := eval(joint) / eval(v1),]
+  dt[,pmi := log2( prob.joint / (prob.c1 * prob.c2) ),]
+  if ('scp' %in% filterMeasures) {
+    dt[, scp := prob.joint^2 / (prob.c1*prob.c2),]
+  }
+  if ('npmi' %in% filterMeasures) {
+    dt[,npmi := pmi / -log2(prob.joint),]
+  }
+  if ('nmi' %in% filterMeasures | 'mi' %in% filterMeasures) {
+    nas <- is.na(dt[,prob.c1]) | is.na(dt[,prob.c2]) |  is.na(dt[,prob.joint])
+    l <- binaryMI(dt[!nas,prob.c1], dt[!nas,prob.c2], dt[!nas,prob.joint], normalized=TRUE)
+    if ('nmi' %in% filterMeasures) {
+      res <- rep(NA,nrow(dt))
+      res[!nas] <- l$nmi
+      dt[,nmi := res,]
+    }
+    if ('mi' %in% filterMeasures) {
+      res <- rep(NA,nrow(dt))
+      res[!nas] <- l$mi
+      dt[,mi := res,]
+    }
+  }
+  if ('pmi2' %in% filterMeasures) {
+    dt[, pmi2 := log2( (prob.joint^2) / (prob.c1 * prob.c2) ), ]
+  }
+  if ('pmi3' %in% filterMeasures) {
+    dt[, pmi3 := log2( (prob.joint^3) / (prob.c1 * prob.c2) ), ]
+  }
+}
+
 
 
 # - input as data.table, modified by reference
@@ -236,43 +352,6 @@ detectSurges <- function(trendDT, globalThreshold=NA, discardNegativeTrend=FALSE
 }
 
 
-computeAndSaveSurgesData <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED', outputFilePrefix='./', ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'), indicators=c('rate','diff')) {
-  dynamic_joint <- loadDynamicData(dir,indivOrJoint = 'joint')
-  # for debugging:
-  # dynamic_joint<-pickRandomDynamic(dynamic_joint,n=1000)
-  dynamic_indiv <- loadDynamicData(dir,indivOrJoint = 'indiv')
-  dynamic_total <- loadDynamicTotalFile(dir)
-  for (w in ma_windows) {
-    joint.ma <- computeMovingAverage(dynamic_joint,dynamic_total, window=w)
-    indiv.ma <- computeMovingAverage(dynamic_indiv,dynamic_total, window=w)
-    for (m in measures) {
-      for (i in indicators) {
-          f <- paste0(outputFilePrefix,paste(m,i,w,'tsv',sep='.'))
-          print(paste('processing and saving to', f))
-          relations<-addDynamicAssociationToRelations(joint.ma,indiv.ma,measures = m)
-          computeTrend(relations, indicator=i,measure=m)
-          threshold <- calculateThresholdInflectionPoint(relations$trend)
-          detectSurges(relations, globalThreshold=threshold)
-          addNextNonZeroYear(relations)
-          fwrite(relations[surge==TRUE,],f,sep='\t')
-      }
-    }
-  }
-}
-
-loadSurgesData <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED', ma_window=1,measure='prob.joint', indicator='diff',dropMeasuresCols=FALSE) {
-  f <- paste(dir,paste(measure,indicator,ma_window,'tsv',sep='.'),sep='/')
-  if (dropMeasuresCols) {
-    d<-fread(f, drop=default_measures)
-  } else {
-    d<-fread(f)
-    
-  }
-  setkey(d,c1,c2)
-  d
-}
-
-
 # OBSOLETE
 # for a single concept/relation
 # returns only the 'surge' column
@@ -288,7 +367,7 @@ adjustZeroFreqSurgesSingleRelation.OBSOLETE <- function(dt,window) {
         NA
       }
     })
-  ,na.rm=TRUE)
+    ,na.rm=TRUE)
   newSurge <- dt$surge
   zeroFreqSurgeYearsIndexes <- dt[surge==TRUE & freq.joint==0, which=TRUE]
   newSurge[zeroFreqSurgeYearsIndexes] <- rep(FALSE,length(zeroFreqSurgeYearsIndexes))
@@ -313,96 +392,41 @@ getNextNonZeroYear <- function(y, dt) {
 
 # receives a dt with colymns 'year' and 'freq.joint'
 addNextNonZeroYear <- function(dt) {
-   dt[,next.nonzero.year := getNextNonZeroYear(year, dt),by=key(dt)]
+  dt[,next.nonzero.year := getNextNonZeroYear(year, dt),by=key(dt)]
 }
 
 
+
+
+##### UTILITIES FUNCTIONS
+
 #
-# if normalized is FALSE returns the binary MI.
-# if normalized is TRUE, returns a list (mi, nmi): the first is regular (binary) MI and the second is normalized MI (NMI)
-#
-binaryMI <- function(pA, pB, pA_B, normalized=FALSE) {
-  pNA_B <- pB - pA_B
-  pA_NB <- pA - pA_B
-  pNA_NB <- 1 - ( pA_B + pNA_B + pA_NB)
-  mi <- rep(0, length(pA_B))
-  mi[pNA_NB>0] <- mi[pNA_NB>0] + pNA_NB[pNA_NB>0] * log2( pNA_NB[pNA_NB>0] / ((1-pA[pNA_NB>0]) * (1-pB[pNA_NB>0])) )
-  mi[pNA_B>0] <- mi[pNA_B>0] + pNA_B[pNA_B>0] * log2( pNA_B[pNA_B>0] / ((1-pA[pNA_B>0]) * pB[pNA_B>0]) )
-  mi[pA_NB>0] <- mi[pA_NB>0] + pA_NB[pA_NB>0] * log2( pA_NB[pA_NB>0] / (pA[pA_NB>0] * (1-pB[pA_NB>0])) )
-  mi[pA_B>0] <- mi[pA_B>0] + pA_B[pA_B>0] * log2( pA_B[pA_B>0] / (pA[pA_B>0] * pB[pA_B>0]) )
-  if (normalized) {
-    norm <- rep(0, length(pA_B))
-    norm[pNA_NB>0] <- norm[pNA_NB>0] + pNA_NB[pNA_NB>0] * log2( pNA_NB[pNA_NB>0]  )
-    norm[pNA_B>0] <- norm[pNA_B>0] + pNA_B[pNA_B>0] * log2( pNA_B[pNA_B>0]  )
-    norm[pA_NB>0] <- norm[pA_NB>0] + pA_NB[pA_NB>0] * log2( pA_NB[pA_NB>0]  )
-    norm[pA_B>0] <- norm[pA_B>0] + pA_B[pA_B>0] * log2( pA_B[pA_B>0] )
-    list(mi=mi, nmi=mi/-norm)
+mergeStaticJointWithIndivData <- function(jointDT, indivDT, addTotalCol=NULL) {
+  d0 <- merge(jointDT, indivDT, by.x='c2',by.y='concept', suffixes=c('.joint',''))
+  d0 <- merge(d0, indivDT, by.x='c1', by.y='concept', suffixes=c('.c2','.c1'))
+  if (!is.null(addTotalCol)) {
+    d0[,total := addTotalCol,]
+  }
+  d0
+}
+
+pickRandomDynamic <- function(d, n=1, minFreqYear=0) {
+  if (minFreqYear>0) {
+    dmin <- d[freq>=minFreqYear,]
+    u <- unique(dmin,by=key(dmin))
   } else {
-    mi
+    u <- unique(d,by=key(d))
   }
+  print(paste('selecting among n pairs = ',nrow(u)))
+  indexes <- sample(nrow(u),n)
+  key <- key(d)
+  picked <- u[indexes,..key]
+  merge(d,picked)
 }
 
-default_measures = c('prob.joint','scp', 'pmi', 'npmi', 'mi', 'nmi', 'pmi2', 'pmi3')
-
-#
-calculateAssociation <- function(dt, filterMeasures=default_measures,col1='freq.c1',col2='freq.c2',colJoint='freq.joint',colTotal='total') { 
-  v1 <- as.name(col1)
-  v2 <- as.name(col2)
-  joint<-as.name(colJoint)
-  total <- as.name(colTotal)
-  dt[,prob.joint := eval(joint) / eval(total),]
-  dt[,prob.c1 := eval(v1) / eval(total),]
-  dt[,prob.c2 := eval(v2) / eval(total),]
-  dt[,prob.C1GivenC2 := eval(joint) / eval(v2),]
-  dt[,prob.C2GivenC1 := eval(joint) / eval(v1),]
-  dt[,pmi := log2( prob.joint / (prob.c1 * prob.c2) ),]
-  if ('scp' %in% filterMeasures) {
-    dt[, scp := prob.joint^2 / (prob.c1*prob.c2),]
-  }
-  if ('npmi' %in% filterMeasures) {
-    dt[,npmi := pmi / -log2(prob.joint),]
-  }
-  if ('nmi' %in% filterMeasures | 'mi' %in% filterMeasures) {
-    nas <- is.na(dt[,prob.c1]) | is.na(dt[,prob.c2]) |  is.na(dt[,prob.joint])
-    l <- binaryMI(dt[!nas,prob.c1], dt[!nas,prob.c2], dt[!nas,prob.joint], normalized=TRUE)
-    if ('nmi' %in% filterMeasures) {
-      res <- rep(NA,nrow(dt))
-      res[!nas] <- l$nmi
-      dt[,nmi := res,]
-    }
-    if ('mi' %in% filterMeasures) {
-      res <- rep(NA,nrow(dt))
-      res[!nas] <- l$mi
-      dt[,mi := res,]
-    }
-  }
-  if ('pmi2' %in% filterMeasures) {
-    dt[, pmi2 := log2( (prob.joint^2) / (prob.c1 * prob.c2) ), ]
-  }
-  if ('pmi3' %in% filterMeasures) {
-    dt[, pmi3 := log2( (prob.joint^3) / (prob.c1 * prob.c2) ), ]
-  }
+filterConcepts <- function(d, concepts) {
+  d[c1 %in% concepts | c2 %in% concepts,]
 }
-
-
-# Merge dynamic datatable with static data and computes association measures.
-#
-# This function can be used with any dt as 'relations', but it is advisable to use it only with the
-# smaller table obtained by filtering computeSurges:
-#
-# surges <- detectSurges(..)
-# surges <- surges[surge==TRUE,]
-# addStaticDataToRelations(surges, ...)
-#
-# The static data should be in the default 'merged' format obtained from loadStaticData;
-# staticData <- loadStaticData(...)
-#
-addStaticAssociationToRelations <- function(relationsDT, staticData, filterMeasures = c('pmi','npmi')) {
-  d <- merge(relationsDT, staticData, by=c('c1','c2'),suffixes=c('.dynamic','.static'))
-  calculateAssociation(d,filterMeasures=filterMeasures,colJoint = 'freq.joint.static',col1 = 'freq.c1.static',col2='freq.c2.static')
-  d
-}
-
 
 
 #
@@ -425,7 +449,7 @@ addRelationName <- function(relationsDT, staticData,excludeConceptsFromName=NULL
   d[,n1 := paste0(term.c1,' (',c1,")"),]
   d[,n2 := paste0(term.c2,' (',c2,")"),]
   d[,fulldescr := paste0(n1,' - ',n2),]
-#  print(unique(d[,fulldescr]))
+  #  print(unique(d[,fulldescr]))
   if (is.null(excludeConceptsFromName)) {
     d[,relation := paste0(term.c1,' - ',term.c2),]
   } else {
@@ -434,8 +458,42 @@ addRelationName <- function(relationsDT, staticData,excludeConceptsFromName=NULL
     d[,relation := paste0(tmp1,tmp2),]
   }
   d
-#  d[,c(colnames(relationsDT),'relation'), with = FALSE]
+  #  d[,c(colnames(relationsDT),'relation'), with = FALSE]
 }
+
+
+# returns a tidy version of the df after separating the elements in column 'colname'
+# The rows which have multiple elements get duplicated, each with one of the elements
+#
+# source: https://stackoverflow.com/questions/13773770/split-comma-separated-strings-in-a-column-into-separate-rows
+#
+tidyUpMultiStringCol <- function(dt, colname, sep=' ') {
+  otherCols <- colnames(dt)[colnames(dt) != colname]
+  setDT(dt)[, lapply(.SD, function(x) unlist(tstrsplit(x, sep, fixed=TRUE))), by = otherCols]
+  
+}
+
+
+# table must have group.c1 and group.c2 as single group: use tidyUpMultiStringCol() on both columns
+#
+selectRelationsGroups <- function(relationsDT, groups1=c('DISO','CHEM','GENE','ANAT'), groups2=c('DISO','CHEM','GENE','ANAT')) {
+  relationsDT[group.c1 %in% groups1 & group.c2 %in% groups2,] 
+}
+
+
+roundIfNotZero <- function(x,asPercentage) {
+  res <- rep('',length(x))
+  if (asPercentage) {
+    res[x>0] <- round(x[x>0],digits=2)*100
+  } else {
+    res[x>0] <- round(x[x>0],digits=2)
+  }
+  res
+}
+
+
+
+##### VISUALIZATION
 
 
 # pairData <- pickRandomDynamic(....)
@@ -611,6 +669,94 @@ displaySurges <- function(pairsData, indivData, totals, staticData,valueCol='pro
 }
 
 
+displayAvgPerfByParam <- function(evalDT,fontsize=14, evalWindow=3) {
+  d <- evalDT[is.na(eval.at) & eval.window==evalWindow,]
+  # window
+  x<-perfByParameter(d,'ma.window')
+  x[,ma.window := as.factor(ma.window)]
+  g1 <- ggplot(x,aes(ma.window,V1,fill=mode))+geom_col(position='dodge')+theme(text=element_text(size=fontsize),legend.position="none")+ylab('Mean recall')
+  # measure
+  x<-perfByParameter(d,'measure')
+  x$measure[x$measure=='prob.joint'] <- 'prob'
+  g2<-ggplot(x,aes(measure,V1,fill=mode))+geom_col(position='dodge')+theme(text=element_text(size=fontsize),legend.position="none")+ylab(NULL)
+  # indicator
+  x<-perfByParameter(d,'indicator')
+  g3<-ggplot(x,aes(indicator,V1,fill=mode))+geom_col(position='dodge')+theme(text=element_text(size=fontsize))+ylab(NULL)
+  plot_grid(g1,
+            g2,
+            g3,
+            labels = NULL,
+            label_x = 0.2,
+            ncol = 3)
+  
+}
+
+
+
+heatMapCommonMatrix <- function(m, varname='overlap',asPercentage=TRUE) {
+  d<-reshape2::melt(m,value.name=varname) 
+  d$Var1 <- factor(d$Var1, levels = unique(d$Var1[order(d$Var1, d$Var1)]))
+  d$Var2 <- factor(d$Var2, levels = unique(d$Var2[order(d$Var2, d$Var2)]))
+  ggplot(d, aes(Var1, Var2)) +
+    geom_tile(aes_string(fill = varname)) + geom_text(aes(label = roundIfNotZero(overlap,asPercentage))) + scale_fill_gradient(low = "white", high = "red",labels = percent) + xlab(NULL)+ylab(NULL)+theme(axis.text.x=element_text(angle = -90, hjust = 0),text=element_text(size=20),legend.position = c(.15, .75))
+}
+
+
+#plotSurgesAcrossTime <- function(dir='data/input',window=3,measure='scp',indicator='diff',bins=30,fontsize=14) {
+#  d<-loadSurgesData(dir, ma_window = window,measure=measure,indicator=indicator)
+#  d[,first.surge:=(year==min(year)),by=key(d)]
+#  ggplot(d,aes(year,fill=first.surge))+geom_histogram(position='stack',bins=bins)+theme(text=element_text(size=fontsize))
+#}
+
+
+doublePlotAcrossTime <- function(dynamicJointDT, surgesDT,bins=71,fontsize=14,marginAdjustMm=2,withLegend=TRUE) {
+  firstcooc <- dynamicJointDT[,.SD[year==min(year),],by=key(dynamicJointDT)]
+  plot.cooc <- ggplot(firstcooc,aes(year))+geom_histogram(bins=bins)+theme(text=element_text(size=fontsize),plot.margin = margin(0, marginAdjustMm, 0, 0, "mm"))+xlim(c(1950,2020))+xlab(NULL)+ylab(NULL)+ggtitle('First cooccurrences')
+  surgesDT[,first.surge:=(year==min(year)),by=key(surgesDT)]
+  plot.surges <- ggplot(surgesDT,aes(year,fill=first.surge))+geom_histogram(position='stack',bins=bins)+xlim(c(1950,2020))+xlab(NULL)+ylab(NULL)+ggtitle('Surges')
+  if (withLegend) {
+    plot.surges <- plot.surges +theme(text=element_text(size=fontsize),legend.position = c(.88, .75),plot.margin = margin(0, 0, 0, marginAdjustMm, "mm"))
+  } else {
+    plot.surges <- plot.surges +theme(text=element_text(size=fontsize),legend.position = 'none',plot.margin = margin(0, 0, 0, marginAdjustMm, "mm"))
+  }
+  plot_grid(plot.cooc,
+            plot.surges,
+            labels = NULL,
+            label_x = 0.2,
+            nrow = 2)
+}
+
+calculateDiffYears <- function(surgesDT, indivDT) {
+  firstocc <- indivDT[,.SD[year==min(year),],by=key(indivDT)]
+  firstocc[,freq:=NULL]
+  d<-merge(surgesDT,firstocc,by.x='c1',by.y='concept',suffixes=c('','.first.c1'))
+  d<-merge(d,firstocc,by.x='c2',by.y='concept',suffixes=c('','.first.c2'))
+  d[,year.first.both:=pmax(year.first.c1,year.first.c2)]
+  d[,duration:=year-year.first.both]
+  d
+}
+
+plotDiffYears <- function(surgesDT, indivDT,bins=71,fontsize=14) {
+  surgesDT[,first.surge:=(year==min(year)),by=key(surgesDT)]
+  d <- calculateDiffYears(surgesDT, indivDT)
+  setnames(d,'duration','years')
+  ggplot(d,aes(years,fill=first.surge))+geom_histogram(position='stack',bins=bins)+ggtitle('Time before surge')+theme(text=element_text(size=fontsize),legend.position = 'bottom',legend.direction = "vertical")+ylab(NULL)
+}
+
+threePlotsAboutYears <- function(surgesDT,indivDT,jointDT,bins=71,fontsize=14,marginAdjustMm=2) {
+  g1 <- doublePlotAcrossTime(jointDT, surgesDT,bins,fontsize,marginAdjustMm,withLegend = FALSE)
+  g2 <- plotDiffYears(surgesDT,indivDT, bins,fontsize)
+  plot_grid(g1,
+            g2,
+            labels = NULL,
+            rel_widths = c(2,1),
+            ncol = 2)
+}
+
+
+
+###### EVALUATION
+
 countSurgesByRelation <- function(surgesDT) {
   surges.by.key <- surgesDT[,.(n.surges=length(surge[surge])),by=key(surgesDT)]
   r<-surges.by.key[,.(n=.N,prop=.N/nrow(surges.by.key)),by=n.surges]
@@ -619,36 +765,16 @@ countSurgesByRelation <- function(surgesDT) {
 }
 
 
-# returns a tidy version of the df after separating the elements in column 'colname'
-# The rows which have multiple elements get duplicated, each with one of the elements
-#
-# source: https://stackoverflow.com/questions/13773770/split-comma-separated-strings-in-a-column-into-separate-rows
-#
-tidyUpMultiStringCol <- function(dt, colname, sep=' ') {
-  otherCols <- colnames(dt)[colnames(dt) != colname]
-  setDT(dt)[, lapply(.SD, function(x) unlist(tstrsplit(x, sep, fixed=TRUE))), by = otherCols]
-  
-}
-
-
-
-# table must have group.c1 and group.c2 as single group: use tidyUpMultiStringCol() on both columns
-#
-selectRelationsGroups <- function(relationsDT, groups1=c('DISO','CHEM','GENE','ANAT'), groups2=c('DISO','CHEM','GENE','ANAT')) {
- relationsDT[group.c1 %in% groups1 & group.c2 %in% groups2,] 
-}
-
-
-statsSurges <- function(total.pairs,total.rel, dir='data/21-extract-discoveries/recompute-with-ND-group/MED', ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'), indicators=c('diff','rate')) {
+statsSurges <- function(total.pairs,total.rel, dir='data/input', ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'), indicators=c('diff','rate')) {
   l <- list()
   for (w in ma_windows) {
     for (m in measures) {
       for (i in indicators) {
-#        print(paste('w=',w,'m=',m,'i=',i))
+        #        print(paste('w=',w,'m=',m,'i=',i))
         d<-loadSurgesData(dir,w,m,i)
         prop.pairs <- nrow(d) / total.pairs
         prop.rel <- nrow(unique(d,by=key(d)))/total.rel
-#        print(paste('pairs=',nrow(d),'rel=',nrow(unique(d,by=key(d)))))
+        #        print(paste('pairs=',nrow(d),'rel=',nrow(unique(d,by=key(d)))))
         l[[length(l)+1]]<-data.table(window=w,measure=m,indicator=i,prop.pairs=prop.pairs,prop.rel=prop.rel)
       }
     }
@@ -661,9 +787,6 @@ statsSurges <- function(total.pairs,total.rel, dir='data/21-extract-discoveries/
   r
 }
 
-loadGoldDiscoveries <- function(dir='medline-discoveries',file='ND-discoveries-year.tsv') {
-  fread('medline-discoveries/ND-discoveries-year.tsv',drop=c('source','notes'))
-}
 
 
 #
@@ -680,12 +803,12 @@ matchSurgesWithGold <- function(surgesDT, goldDT, selectedCols=c('c1','c2','year
 }
 
 
-collectEvalDataSurgesAgainstGold <- function(goldDT, dir='data/21-extract-discoveries/recompute-with-ND-group/MED',evalAt=NA,ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'), indicators=c('diff','rate')) {
+collectEvalDataSurgesAgainstGold <- function(goldDT, dir='data/input',evalAt=NA,ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'), indicators=c('diff','rate')) {
   l <- list()
   for (w in ma_windows) {
     for (m in measures) {
       for (i in indicators) {
-#        print(paste('w=',w,'m=',m,'i=',i))
+        #        print(paste('w=',w,'m=',m,'i=',i))
         d0<-loadSurgesData(dir,w,m,i)
         setkey(d0,c1,c2)
         originalSize <- nrow(d0)
@@ -737,53 +860,7 @@ evalSurgessAgainstGold <- function(goldDT, dir,evalAt=c(100,1000),eval_windows=c
 
 # perfDT <- evalSurgessAgainstGold(...)
 perfByParameter <- function(perfDT, param='ma.window') {
-    perfDT[,mean(perf),by=c('mode','eval.at',param)]
-}
-
-
-displayAvgPerfByParam <- function(evalDT,fontsize=14, evalWindow=3) {
-  d <- evalDT[is.na(eval.at) & eval.window==evalWindow,]
-  # window
-  x<-perfByParameter(d,'ma.window')
-  x[,ma.window := as.factor(ma.window)]
-  g1 <- ggplot(x,aes(ma.window,V1,fill=mode))+geom_col(position='dodge')+theme(text=element_text(size=fontsize),legend.position="none")+ylab('Mean recall')
-  # measure
-  x<-perfByParameter(d,'measure')
-  x$measure[x$measure=='prob.joint'] <- 'prob'
-  g2<-ggplot(x,aes(measure,V1,fill=mode))+geom_col(position='dodge')+theme(text=element_text(size=fontsize),legend.position="none")+ylab(NULL)
-  # indicator
-  x<-perfByParameter(d,'indicator')
-  g3<-ggplot(x,aes(indicator,V1,fill=mode))+geom_col(position='dodge')+theme(text=element_text(size=fontsize))+ylab(NULL)
-  plot_grid(g1,
-            g2,
-            g3,
-            labels = NULL,
-            label_x = 0.2,
-            ncol = 3)
-  
-}
-
-
-
-readMultipleSurgesFiles <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED',ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'), indicators=c('diff','rate'), firstYear=TRUE) {
-  l <- list()
-  for (w in ma_windows) {
-    for (m in measures) {
-      for (i in indicators) {
-#        print(paste('w=',w,'m=',m,'i=',i))
-        d<-loadSurgesData(dir,w,m,i,dropMeasuresCols=TRUE)
-        setkey(d,c1,c2)
-        if (firstYear) {
-          d <- d[,.SD[year==min(year)],by=key(d)]
-        }
-        d[,ma.window := w]
-        d[,measure := m]
-        d[,indicator:=i]
-        l[[length(l)+1]]<-d
-      }
-    }
-  }
-  rbindlist(l)
+  perfDT[,mean(perf),by=c('mode','eval.at',param)]
 }
 
 
@@ -835,72 +912,3 @@ buildCommonMatrix <-function(d, yearWindow=NA) {
 }
 
 
-roundIfNotZero <- function(x,asPercentage) {
-  res <- rep('',length(x))
-  if (asPercentage) {
-    res[x>0] <- round(x[x>0],digits=2)*100
-  } else {
-    res[x>0] <- round(x[x>0],digits=2)
-  }
-  res
-}
-
-heatMapCommonMatrix <- function(m, varname='overlap',asPercentage=TRUE) {
-  d<-reshape2::melt(m,value.name=varname) 
-  d$Var1 <- factor(d$Var1, levels = unique(d$Var1[order(d$Var1, d$Var1)]))
-  d$Var2 <- factor(d$Var2, levels = unique(d$Var2[order(d$Var2, d$Var2)]))
-  ggplot(d, aes(Var1, Var2)) +
-    geom_tile(aes_string(fill = varname)) + geom_text(aes(label = roundIfNotZero(overlap,asPercentage))) + scale_fill_gradient(low = "white", high = "red",labels = percent) + xlab(NULL)+ylab(NULL)+theme(axis.text.x=element_text(angle = -90, hjust = 0),text=element_text(size=20),legend.position = c(.15, .75))
-}
-
-
-#plotSurgesAcrossTime <- function(dir='data/21-extract-discoveries/recompute-with-ND-group/MED',window=3,measure='scp',indicator='diff',bins=30,fontsize=14) {
-#  d<-loadSurgesData(dir, ma_window = window,measure=measure,indicator=indicator)
-#  d[,first.surge:=(year==min(year)),by=key(d)]
-#  ggplot(d,aes(year,fill=first.surge))+geom_histogram(position='stack',bins=bins)+theme(text=element_text(size=fontsize))
-#}
-
-
-doublePlotAcrossTime <- function(dynamicJointDT, surgesDT,bins=71,fontsize=14,marginAdjustMm=2,withLegend=TRUE) {
-  firstcooc <- dynamicJointDT[,.SD[year==min(year),],by=key(dynamicJointDT)]
-  plot.cooc <- ggplot(firstcooc,aes(year))+geom_histogram(bins=bins)+theme(text=element_text(size=fontsize),plot.margin = margin(0, marginAdjustMm, 0, 0, "mm"))+xlim(c(1950,2020))+xlab(NULL)+ylab(NULL)+ggtitle('First cooccurrences')
-  surgesDT[,first.surge:=(year==min(year)),by=key(surgesDT)]
-  plot.surges <- ggplot(surgesDT,aes(year,fill=first.surge))+geom_histogram(position='stack',bins=bins)+xlim(c(1950,2020))+xlab(NULL)+ylab(NULL)+ggtitle('Surges')
-  if (withLegend) {
-    plot.surges <- plot.surges +theme(text=element_text(size=fontsize),legend.position = c(.88, .75),plot.margin = margin(0, 0, 0, marginAdjustMm, "mm"))
-  } else {
-    plot.surges <- plot.surges +theme(text=element_text(size=fontsize),legend.position = 'none',plot.margin = margin(0, 0, 0, marginAdjustMm, "mm"))
-  }
-  plot_grid(plot.cooc,
-            plot.surges,
-            labels = NULL,
-            label_x = 0.2,
-            nrow = 2)
-}
-
-calculateDiffYears <- function(surgesDT, indivDT) {
-  firstocc <- indivDT[,.SD[year==min(year),],by=key(indivDT)]
-  firstocc[,freq:=NULL]
-  d<-merge(surgesDT,firstocc,by.x='c1',by.y='concept',suffixes=c('','.first.c1'))
-  d<-merge(d,firstocc,by.x='c2',by.y='concept',suffixes=c('','.first.c2'))
-  d[,year.first.both:=pmax(year.first.c1,year.first.c2)]
-  d[,duration:=year-year.first.both]
-  d
-}
-
-plotDiffYears <- function(surgesDT, indivDT,bins=71,fontsize=14) {
-  surgesDT[,first.surge:=(year==min(year)),by=key(surgesDT)]
-  d <- calculateDiffYears(surgesDT, indivDT)
-  setnames(d,'duration','years')
-  ggplot(d,aes(years,fill=first.surge))+geom_histogram(position='stack',bins=bins)+ggtitle('Time before surge')+theme(text=element_text(size=fontsize),legend.position = 'bottom',legend.direction = "vertical")+ylab(NULL)
-}
-
-threePlotsAboutYears <- function(surgesDT,indivDT,jointDT,bins=71,fontsize=14,marginAdjustMm=2) {
-  g1 <- doublePlotAcrossTime(jointDT, surgesDT,bins,fontsize,marginAdjustMm,withLegend = FALSE)
-  g2 <- plotDiffYears(surgesDT,indivDT, bins,fontsize)
-  plot_grid(g1,
-            g2,
-            labels = NULL,
-            rel_widths = c(2,1),
-            ncol = 2)
-}
