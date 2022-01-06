@@ -43,6 +43,7 @@ shortVersion <- TRUE
 ## Software
 
 This code requires R and a few R libraries:
+
 - `data.table`
 - `ggplot2`
 - `plyr`
