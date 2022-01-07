@@ -25,8 +25,8 @@ default_measures = c('prob.joint','scp', 'pmi', 'npmi', 'mi', 'nmi', 'pmi2', 'pm
 ##### LOAD/SAVE FUNCTIONS
 
 # returns the indiv or joint data as a data table, with result DT key set as the concept or pair of concepts
-loadDynamicData <- function(dir='data/input',indivOrJoint='indiv',suffix='ND.min100', minYear=1950, maxYear=2020) {
-  f <- paste(dir,paste(indivOrJoint,suffix,sep='.'),sep='/')
+loadDynamicData <- function(dir='data/input',indivOrJoint='indiv',suffix='.ND.min100', minYear=1950, maxYear=2020) {
+  f <- paste(dir,paste0(indivOrJoint,suffix),sep='/')
   if (indivOrJoint == 'indiv') {
     d<-fread(f,col.names=c('year','concept','freq'),drop=4)
     setkey(d, concept)
@@ -50,8 +50,22 @@ loadDynamicTotalFile <- function(dir='data/input', filename='indiv.full.total', 
 # - By default (merged=TRUE) a single datatable is returned after merging the joint and indiv data, so that every pair
 #   has the full information.
 # - If merged=FALSE then the joint and indiv data are returned separately as a list.
+# - By default the filenames are obtained using the suffix as follows:
+#     - indiv<suffix>.terms
+#     - joint<suffix>
+#     - indiv.full.total
+#   Otherwise the three filenames can be provided manually with filenames=c(indiv, joint, total). 'suffix' is ignored in this case.
 #
-loadStaticData <- function(dir='data/input/static/',jointFile='joint.min100.ND',indivFile='indiv.min100.ND.terms', totalFile='indiv.full.total',merged=TRUE) {
+loadStaticData <- function(dir='data/input/static/',suffix='.ND.min100',merged=TRUE, filenames=NULL) {
+  if (is.null(filenames)) {
+    indivFile <- paste0(indiv,suffix,'.terms')
+    jointFile <- paste0(joint,suffix)
+    totalFile <- 'indiv.full.total'
+  } else {
+    indivFile <- flienames[1]
+    jointFile <- flienames[2]
+    totalFile <- flienames[3]
+  }    
   joint <- fread(paste(dir, jointFile,sep='/'),col.names=c('c1','c2','freq'))
   setkey(joint,c1,c2)
   indiv <- fread(paste(dir, indivFile,sep='/'),col.names=c('concept','freq','term','group'),drop=3)
@@ -68,7 +82,7 @@ loadStaticData <- function(dir='data/input/static/',jointFile='joint.min100.ND',
 
 
 
-computeAndSaveSurgesData <- function(dir='data/input', outputFilePrefix='data/output/', ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'), indicators=c('rate','diff')) {
+computeAndSaveSurgesData <- function(dir='data/input', outputFilePrefix='data/output/', suffix='.ND.min100',ma_windows=c(1,3,5),measures=default_measures, indicators=c('rate','diff')) {
   if (!dir.exists(dir)) {
     dir.create(dir,recursive = TRUE)
   }
@@ -82,7 +96,7 @@ computeAndSaveSurgesData <- function(dir='data/input', outputFilePrefix='data/ou
     indiv.ma <- computeMovingAverage(dynamic_indiv,dynamic_total, window=w)
     for (m in measures) {
       for (i in indicators) {
-        f <- paste0(outputFilePrefix,paste(m,i,w,'tsv',sep='.'))
+        f <- paste0(outputFilePrefix,paste(m,i,w,suffix,'tsv',sep='.'))
         print(paste('processing and saving to', f))
         relations<-addDynamicAssociationToRelations(joint.ma,indiv.ma,measures = m)
         computeTrend(relations, indicator=i,measure=m)
@@ -97,8 +111,8 @@ computeAndSaveSurgesData <- function(dir='data/input', outputFilePrefix='data/ou
 
 
 
-loadSurgesData <- function(dir='data/output', ma_window=1,measure='prob.joint', indicator='diff',dropMeasuresCols=FALSE) {
-  f <- paste(dir,paste(measure,indicator,ma_window,'tsv',sep='.'),sep='/')
+loadSurgesData <- function(dir='data/output', suffix='.ND.min100', ma_window=1,measure='prob.joint', indicator='diff',dropMeasuresCols=FALSE) {
+  f <- paste(dir,paste(measure,indicator,ma_window,suffix,'tsv',sep='.'),sep='/')
   if (dropMeasuresCols) {
     d<-fread(f, drop=default_measures)
   } else {
@@ -115,7 +129,7 @@ loadGoldDiscoveries <- function(dir='data',file='ND-discoveries-year.tsv') {
 }
 
 
-readMultipleSurgesFiles <- function(dir='data/output',ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'), indicators=c('diff','rate'), firstYear=TRUE) {
+readMultipleSurgesFiles <- function(dir='data/output',ma_windows=c(1,3,5),measures=default_measures, indicators=c('diff','rate'), firstYear=TRUE) {
   l <- list()
   for (w in ma_windows) {
     for (m in measures) {
@@ -379,7 +393,7 @@ adjustZeroFreqSurgesSingleRelation.OBSOLETE <- function(dt,window) {
 
 # for a single concept/relation
 # receives a vector of years and a dt with colymns 'year' and 'freq.joint'
-getNextNonZeroYear <- function(y, dt) {
+getNextNonZeroYear0 <- function(y, dt) {
   laply(y, function(y0) { 
     l <- dt[year>=y0 & freq.joint>0,year]
     if (length(l)>0) {
@@ -390,9 +404,22 @@ getNextNonZeroYear <- function(y, dt) {
   })
 } 
 
+getNextNonZeroYear <- function(dt) {
+  nz <- dt[freq.joint>0,year]
+  laply(dt[,year], function(y0) { 
+    l <- nz[nz>=y0]
+    if (length(l)>0) {
+      min(l) 
+    } else {
+      NA
+    }
+  })
+} 
+
+
 # receives a dt with colymns 'year' and 'freq.joint'
 addNextNonZeroYear <- function(dt) {
-  dt[,next.nonzero.year := getNextNonZeroYear(year, dt),by=key(dt)]
+  dt[,next.nonzero.year := getNextNonZeroYear(.SD),by=key(dt)]
 }
 
 
@@ -864,7 +891,7 @@ perfByParameter <- function(perfDT, param='ma.window') {
 }
 
 
-# multiParamSurgesDT <- readMultipleSurgesFiles
+# multiParamSurgesDT <- readMultipleSurgesFiles(...)
 correlationMatrixMultiParam <- function(multiParamSurgesDT, yearWindow=NA) {
   if (length(unique(multiParamSurgesDT$indicator))==1) {
     multiParamSurgesDT[,config:=paste(measure,ma.window,sep='.')]

@@ -34,6 +34,7 @@ This R Markdown document can be configured by modifying the following lines:
 ```{r myoptions}
 # set to TRUE for short execution with a subset of data
 dataPath <- 'data/input'
+data.suffix <- '.ND.min100'
 shortVersion <- TRUE
 ```
 
@@ -99,9 +100,9 @@ source('discoveries.R')
 
 
 ```{r load dynamic}
-dynamic_joint <- loadDynamicData(dataPath,indivOrJoint = 'joint')
-dynamic_indiv <- loadDynamicData(dataPath,indivOrJoint = 'indiv')
-dynamic_total <- loadDynamicTotalFile(dataPath)
+dynamic_joint <- loadDynamicData(dir=dataPath,suffix=data.suffix, indivOrJoint = 'joint')
+dynamic_indiv <- loadDynamicData(dir=dataPath,suffix=data.suffix, indivOrJoint = 'indiv')
+dynamic_total <- loadDynamicTotalFile(dir=dataPath)
 ```
 
 ```{r, init.data.short, eval=shortVersion}
@@ -209,6 +210,8 @@ detectSurges(rel.measures, globalThreshold=threshold)
 
 Using a moving average window (size higher than 1) can cause the surge year to be detected too early. This can lead to a meaningless result, in particular if the surge year has no cooccurrence at all. This step calculates the next non-zero year for every year and every relation. This "adjusted year" can be used to replace the surge year in some applications. 
 
+This step is optional and takes a long time (5 to 10 minutes for the ND subset).
+
 ```{r adjust}
 addNextNonZeroYear(rel.measures)
 ```
@@ -234,5 +237,5 @@ ggplot(surges_stats,aes(n.surges,prop))+geom_col()
 A convenience function is provided which computes the surges based on multiple parameters and saves the resulting data to a file. This function encapsulates all the steps presented above.
 
 ```{r saving,eval=!shortVersion}
-system.time(computeAndSaveSurgesData(dataPath,outputFilePrefix=paste0(dataPath,'/'), ma_windows=c(1,3,5),indicators=c('rate','diff')))
+system.time(computeAndSaveSurgesData(dataPath,outputFilePrefix=paste0(dataPath,'/'), ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'),indicators=c('rate','diff')))
 ```
