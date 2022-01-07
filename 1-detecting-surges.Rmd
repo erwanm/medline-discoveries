@@ -17,12 +17,15 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Overview
 
-- This is the documentation for the [Medline Discoveries repository](https://github.com/erwanm/medline-discoveries), which is the companion code for the paper "Mining impactful discoveries from the biomedical literature" **TODO link**.
-- There are actually three parts in the documentation:
-     - The [data collection](https://erwanm.github.io/medline-discoveries/data-collection) process describes how the input data was created.
-     - The ["Detecting surges" main documentation](https://erwanm.github.io/medline-discoveries/1-detecting-surges.html) (this document) describes how to generate the output data (i.e. detecting surges) using the provided R implementation.
-     - The ["Analysis" part](https://erwanm.github.io/medline-discoveries/2-analysis.html) proposes some additional analysis of the results, including how to generate the graphs and tables found in the paper.  
-- The input data (Medline MeSH descriptors frequency by year) and the output data (extracted discoveries) are available at **TODO link**.
+This is the main documentation for the [Medline Discoveries repository](https://github.com/erwanm/medline-discoveries), which is the companion code for the paper "Mining impactful discoveries from the biomedical literature" **TODO link**.
+
+There are three parts in the documentation:
+     
+- The [data collection](https://erwanm.github.io/medline-discoveries/data-collection) process describes how the input data was created.
+- The ["Detecting surges" main documentation](https://erwanm.github.io/medline-discoveries/1-detecting-surges.html) (this document) describes how to generate the output data (i.e. detecting surges) using the provided R implementation.
+- The ["Analysis" part](https://erwanm.github.io/medline-discoveries/2-analysis.html) proposes some additional analysis of the results, including how to generate the graphs and tables found in the paper.  
+
+
 
 
 ### Rmd Options
@@ -32,9 +35,13 @@ This document was generated from an [R Markdown](https://rmarkdown.rstudio.com/)
 This R Markdown document can be configured by modifying the following lines:
 
 ```{r myoptions}
-# set to TRUE for short execution with a subset of data
+# input directory
 dataPath <- 'data/input'
+# output dir
+outputDir='data/output'
+# filenames suffix (see 'input data format' below)
 data.suffix <- '.ND.min100'
+# set to TRUE for quick execution with a random subset of the data
 shortVersion <- TRUE
 ```
 
@@ -50,7 +57,7 @@ This code requires R and a few R libraries:
 - `plyr`
 - `cowplot`
 - `scales`
-- `knitr` and `rmarkdown` (only if executing the Rmd source files)
+- `knitr` and `rmarkdown` (only neededfor executing the Rmd source files)
 
 ## Data
 
@@ -139,7 +146,7 @@ This step fills the gap years with 0 frequency values and calculates the moving 
 
 - This step is necessary even if the moving average is not used (default window of size 1).
 
-With a moving average over a window of size 5:
+Example with a moving average over a window of size 5:
 
 ```{r ma5}
 relations.ma <- computeMovingAverage(dynamic_joint,dynamic_total, window=5)
@@ -155,7 +162,7 @@ nrow(relations.ma)
 
 ## Caculating a set of measures by year
 
-In this the measure used as a basis for calculating the trend (next step) is calculated. 
+This step calculates the measures used as a basis for calculating the trend (next step). One or several measures can be calculated.
 
 Available measures:
 
@@ -171,13 +178,13 @@ rel.measures<-addDynamicAssociationToRelations(relations.ma,indiv.ma,measures = 
 
 ## Calculating the trend for every year and every relation
 
-This step calculates the `trend` for every year and every relation, then labels each year as a surge or not (column `surge`). 
+This step calculates the `trend` for every year and every relation. 
 
 - The input data table is modified in place for the sake of efficiency. It contains additional columns after executing the function, but the number of rows is not modified. 
-- The trend is calculated on the column provided with the argument `measure`.
+- The trend is calculated using the column provided with the argument `measure` and stored in a new column `trend`.
 - The `indicator` argument determines how the `trend` value is calculated:
-    - `rate` (default) is the relative rate: $\frac{p_{y}-p_{y-1}}{p_{y-1}}$
-    - `diff` is the difference: $p_{y}-p_{y-1}$
+    - `rate` (default) is the relative rate: $\frac{p_{y}-p_{y-1}}{p_{y-1}}$. Experimetal results show that this indicator gives very poor results.
+    - `diff` is the simple difference: $p_{y}-p_{y-1}$
 
 Example:
 
@@ -185,17 +192,18 @@ Example:
 computeTrend(rel.measures, indicator='diff', measure='nmi')
 ```
 
-- Note: there is no need to store the output data table since `relations` is modified by reference.
+- Note: there is no need to store the output data table since the data table is modified by reference.
 
 ## Detecting surges
 
 For every relation, this step marks the years where the trend value is higher than some threshold $t$ as surge. 
-TODO update
 
-- $t$ can be a custom threshold or defined based on the standard outlier threshold calculated with the inter-quartile range: $t=Q_3 + 3 IQR$. 
-- $t$ can be calculated locally, i.e. independently for every every concept/pair (default)
-- $t$ can be defined globally, either with a custom value or using the standard outlier threshold.
-- The input data table is modified in place for the sake of efficiency. 
+$t$ can be a custom threshold or defined with one of the two proposed methods:
+
+- method 1 uses the standard outlier threshold calculated with the inter-quartile range: $t=Q_3 + 3 IQR$.
+- method 2 (recommended) uses the inflection point in the quantile graph (see details in the paper).
+
+The input data table is modified in place for the sake of efficiency. 
 
 
 ```{r surges}
@@ -210,14 +218,14 @@ detectSurges(rel.measures, globalThreshold=threshold)
 
 Using a moving average window (size higher than 1) can cause the surge year to be detected too early. This can lead to a meaningless result, in particular if the surge year has no cooccurrence at all. This step calculates the next non-zero year for every year and every relation. This "adjusted year" can be used to replace the surge year in some applications. 
 
-This step is optional and takes a long time (5 to 10 minutes for the ND subset).
+This step is optional and takes a fairly long time (5 to 10 minutes for the ND subset).
 
 ```{r adjust}
 addNextNonZeroYear(rel.measures)
 ```
 
 
-### Statistics surges
+## Statistics surges
 
 
 ```{r}
@@ -237,5 +245,5 @@ ggplot(surges_stats,aes(n.surges,prop))+geom_col()
 A convenience function is provided which computes the surges based on multiple parameters and saves the resulting data to a file. This function encapsulates all the steps presented above.
 
 ```{r saving,eval=!shortVersion}
-system.time(computeAndSaveSurgesData(dataPath,outputFilePrefix=paste0(dataPath,'/'), ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'),indicators=c('rate','diff')))
+system.time(computeAndSaveSurgesData(dataPath,outputDir=outputDir,suffix=data.suffix, ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'),indicators=c('rate','diff')))
 ```
