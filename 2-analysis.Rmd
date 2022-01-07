@@ -27,9 +27,13 @@ This document is part of the documentation for the [Medline Discoveries reposito
 
 ### Rmd Options
 
-This document was generated from an [R Markdown](https://rmarkdown.rstudio.com/) source file. The source file is provided in the repository, allowing full reproducibility of the experiments presented in the paper.
+This document was generated from an [R Markdown](https://rmarkdown.rstudio.com/) source file. The source file is provided in the repository, allowing full reproducibility of the experiments presented in the paper. It can be executed through the RStudio interface ("knit" button) or as follows:
 
-This R Markdown document can be configured by modifying the following lines:
+```
+rmarkdown::render('1-detecting-surges.Rmd')
+```
+
+The `.Rmd` source document can be configured by modifying the following lines:
 
 ```{r myoptions}
 # directory for the input data (Medline frequency data)
@@ -46,14 +50,20 @@ savePaperGraphs <- TRUE
 ```
 
 
-
-# datasets
-
 ```{r initialization}
 source('discoveries.R')
 ```
 
+## Requirements
+
+The software requirements are the same as for [the first part](1-detecting-surges.html#software)
+
+This part requires the same input data as in [the first part](1-detecting-surges.html#data), but also the output generated as a result of applying the process. Both datasets can be downloaded at **TODO link**.
+
+By default the input data is expected in the subdirectory `data/input` and the output data (unsuprisingly)  in `data/output`.
+
 ## Loading
+
 
 ```{r load}
 dynamic_joint <- loadDynamicData(dataPath,indivOrJoint = 'joint')
@@ -63,7 +73,7 @@ static_data <- loadStaticData(dataPathStatic)
 ```
 
 
-## Selecting the specific concepts presented in the paper
+## Selecting some of the specific concepts presented in the paper
 
 ```{r als}
 als <- filterConcepts(dynamic_joint, 'D000690')
@@ -72,20 +82,10 @@ parkinson <- filterConcepts(dynamic_joint, 'D010300')
 caseParkinson <- filterConcepts(parkinson, 'D013378')
 ```
 
+## Selecting a random subset
 
 ```{r, init.data.short, echo=shortVersion, eval=shortVersion}
 dynamic_joint<-pickRandomDynamic(dynamic_joint,n=1000)
-```
-
-
-# Visualizing frequency across time
-
-## Generating random examples
-
-A single pair of concepts can be picked randomly as follows:
-
-```{r rnd1}
-relation<-pickRandomDynamic(dynamic_joint)
 ```
 
 In order to avoid cases with insufficient data, it is possible to filter out rows with less than some minimum frequency $m$ (the relation must have at least one year with a frequency higher than $m$). It is also possible to specify the number of cases to pick:
@@ -94,7 +94,8 @@ In order to avoid cases with insufficient data, it is possible to filter out row
 three_relations<-pickRandomDynamic(dynamic_joint,n=3, minFreqYear = 200)
 ```
 
-## Displaying relations with their concepts names
+
+## Displaying relations frequency across time with their concepts names
 
 Using the relations selected randomly above:
 
@@ -119,7 +120,7 @@ g
 ggsave('expl1.pdf',g)
 ```
 
-# Measures
+## Displaying measures
 
 ```{r measures1}
 g <- displayMultiMeasure(selectedALS,dynamic_indiv,dynamic_total,static_data,windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi'),excludeConceptsFromName = 'D000690')
@@ -131,40 +132,37 @@ g
 ggsave('expl-measures.pdf',g+ theme(text=element_text(size=14),legend.position="none",axis.title.x=element_blank(),axis.title.y=element_blank()),width=20,height=16,units = "cm")
 ```
 
-# Trend parameters
+## Study of the trend parameters
 
-## Using simple frequency, indicator 'rate'
+### Using simple frequency, indicator 'rate'
 
 ```{r trend1}
 displayMultiTrend(selectedALS,dynamic_indiv,dynamic_total,static_data,indicator='rate',measure = 'prob.joint',excludeConceptsFromName = 'D000690')
 ```
 
-## Using NMI, indicator 'rate'
+### Using NMI, indicator 'rate'
 
 ```{r trend2}
 displayMultiTrend(selectedALS,dynamic_indiv,dynamic_total,static_data,indicator='rate',measure = 'nmi',excludeConceptsFromName = 'D000690')
 ```
 
-## Using NMI, indicator 'diff'
+### Using NMI, indicator 'diff'
 
 ```{r trend3}
 displayMultiTrend(selectedALS,dynamic_indiv,dynamic_total,static_data,indicator='diff',measure = 'nmi',excludeConceptsFromName = 'D000690')
 ```
 
 
+## Examples for indicators and surges
 
-# Example indicators and surges
-
-## Using simple frequency
+### Using simple frequency
 
 ```{r surges1}
 g <- displaySurges(caseParkinson,dynamic_indiv,dynamic_total,static_data,windows=c(1,3), indicators=c('rate','diff'),withTitle = TRUE)
 g
-# saving the graph as pdf:
-# ggsave('expl1.pdf',g)
 ```
 
-## Using NMI
+### Using NMI
 
 ```{r surges2}
 g <- displaySurges(caseParkinson,dynamic_indiv,dynamic_total,static_data,valueCol='nmi',windows=c(1,3,5), indicators=c('rate','diff'),withTitle = TRUE)
@@ -173,11 +171,9 @@ g
 # ggsave('expl1.pdf',g)
 ```
 
-# Trend distribution
+## Displaying the trend distribution
 
-
-## 'Standard' version
-
+### 'Standard' version
 
 
 ```{r sample.ma}
@@ -197,18 +193,15 @@ The vertical lines show the outlier threshold calculated as $Q_3+k \times IQR$, 
 #l$x1.y1
 ```
 
-## "Flat" distribution
+### Quantile plot ("flat" distribution)
 
-These graphs show the "flat" distribution (not sure if it has a standard name): 
+These graphs show the "flat" distribution (probably not a standard name): 
 
 - The points are sorted by `trend` and their relative rank (rank divided by number of points) is plotted as X. In other words, the X axis represents all the quantile positions with respect to `trend`.
 - The `trend` value shown on the Y axis is normalized between [0,1] for every measure.
 
-```{r trend.distrib2}
-#displayTrendDistribution2(relations.ma,indiv.ma,withRect = FALSE)
-```
-
 ```{r trend.distrib3}
+#displayTrendDistribution2(relations.ma,indiv.ma,withRect = FALSE)
 g<-displayTwoPlotsDistribTrend(relations.ma,indiv.ma)
 g
 ```
@@ -218,7 +211,7 @@ ggsave('expl-trend-distrib.pdf',g,width=20,height=8,units = "cm")
 ```
 
 
-# Evaluation 
+## Evaluation 
 
 ## Gold standard data
 

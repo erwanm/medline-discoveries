@@ -27,12 +27,15 @@ There are three parts in the documentation:
 
 
 
-
 ### Rmd Options
 
-This document was generated from an [R Markdown](https://rmarkdown.rstudio.com/) source file. The source file is provided in the repository, allowing full reproducibility of the experiments presented in the paper.
+This document was generated from an [R Markdown](https://rmarkdown.rstudio.com/) source file. The source file is provided in the repository, allowing full reproducibility of the experiments presented in the paper. It can be executed through the RStudio interface ("knit" button) or as follows:
 
-This R Markdown document can be configured by modifying the following lines:
+```
+rmarkdown::render('1-detecting-surges.Rmd')
+```
+
+The `.Rmd` source document can be configured by modifying the following lines:
 
 ```{r myoptions}
 # input directory
@@ -48,7 +51,7 @@ shortVersion <- TRUE
 
 ## Requirements
 
-## Software
+### Software
 
 This code requires R and a few R libraries:
 
@@ -57,11 +60,13 @@ This code requires R and a few R libraries:
 - `plyr`
 - `cowplot`
 - `scales`
-- `knitr` and `rmarkdown` (only neededfor executing the Rmd source files)
+- `knitr` and `rmarkdown` (only needed for executing the Rmd source files)
 
-## Data
+### Data
 
 The input data used for the experiment described in the paper can be obtained at **TODO link**. The process used to collect this data is described in the [data collection part](https://erwanm.github.io/medline-discoveries/data-collection).
+
+By default the input data is expected in the subdirectory `data/input`.
 
 ### Input data format
 
@@ -103,7 +108,6 @@ source('discoveries.R')
 
 
 ## Loading the input data
-
 
 
 ```{r load dynamic}
