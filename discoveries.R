@@ -84,7 +84,8 @@ loadStaticData <- function(dir='data/input/static/',suffix='.ND.min100',merged=T
 
 computeAndSaveSurgesData <- function(dir='data/input', outputDir='data/output/', suffix='.ND.min100',ma_windows=c(1,3,5),measures=default_measures, indicators=c('rate','diff')) {
   if (!dir.exists(outputDir)) {
-    dir.create(dir,recursive = TRUE)
+    print(paste('creating directory', outputDir))
+    dir.create(outputDir,recursive = TRUE)
   }
   dynamic_joint <- loadDynamicData(dir,indivOrJoint = 'joint')
   # for debugging:
@@ -96,7 +97,7 @@ computeAndSaveSurgesData <- function(dir='data/input', outputDir='data/output/',
     indiv.ma <- computeMovingAverage(dynamic_indiv,dynamic_total, window=w)
     for (m in measures) {
       for (i in indicators) {
-        f <- paste(outputDir,paste(m,i,w,suffix,'tsv',sep='.'),sep='/')
+        f <- paste(outputDir,paste0(paste(m,i,w,sep='.'),suffix,'.tsv'),sep='/')
         print(paste('processing and saving to', f))
         relations<-addDynamicAssociationToRelations(joint.ma,indiv.ma,measures = m)
         computeTrend(relations, indicator=i,measure=m)
