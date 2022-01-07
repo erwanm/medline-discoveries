@@ -1,5 +1,5 @@
 ---
-title: "Mining Impactful Discoveries 3: Analysis"
+title: "Mining Impactful Discoveries 2: Analysis"
 author: "Erwan Moreau"
 date: "November 2021"
 output:
@@ -12,18 +12,46 @@ output:
 ```{r setup, include=FALSE}
 library(knitr)
 library(rmarkdown)
-library(ggplot2)
-source('discoveries4.R')
 knitr::opts_chunk$set(echo = TRUE)
-# TODO temporary path
-dataPath <- '../data/21-extract-discoveries/recompute-with-ND-group/MED'
-dataPathStatic <- paste(dataPath,'static',sep='/')
-# set to TRUE for short execution with a subset of data
+```
+
+
+# medline-discoveries: analysis
+
+## Overview
+
+This document is part of the documentation for the [Medline Discoveries repository](https://github.com/erwanm/medline-discoveries), which is the companion code for the paper "Mining impactful discoveries from the biomedical literature" **TODO link**.
+
+- [The main documentation](https://erwanm.github.io/medline-discoveries/1-detecting-surges.html) describes how to generate the output data (i.e. detecting surges) using the provided R implementation.
+- This part of the documentation covers additional analysis of the results, including how the graphs and tables presented in the paper are obtained.
+
+### Rmd Options
+
+This document was generated from an [R Markdown](https://rmarkdown.rstudio.com/) source file. The source file is provided in the repository, allowing full reproducibility of the experiments presented in the paper.
+
+This R Markdown document can be configured by modifying the following lines:
+
+```{r myoptions}
+# directory for the input data (Medline frequency data)
+dataPathInput <- 'data/input'
+dataPathInputStatic <- paste(dataPathInput,'static',sep='/')
+# directory for the output data (extracted surges from the main process in step 1)
+dataPathOutput <- 'data/output'
+# filenames suffix (see 'input data format' below)
+data.suffix <- '.ND.min100'
+# set to TRUE for quick execution with a random subset of the data
 shortVersion <- TRUE
+# set to TRUE in order to save the graphs used in the paper
 savePaperGraphs <- TRUE
 ```
 
+
+
 # datasets
+
+```{r initialization}
+source('discoveries.R')
+```
 
 ## Loading
 
