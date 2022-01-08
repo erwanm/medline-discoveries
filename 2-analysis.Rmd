@@ -104,10 +104,6 @@ three_relations<-pickRandomDynamic(dynamic_joint,n=3, minFreqYear = 200)
 
 Using the relations selected randomly above:
 
-```{r display1}
-displaySeveralPairsData(relation,static_data,dynamic_total)
-```
-
 
 ```{r display2}
 displaySeveralPairsData(three_relations,static_data,dynamic_total)

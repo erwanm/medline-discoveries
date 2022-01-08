@@ -53,14 +53,14 @@ loadDynamicTotalFile <- function(dir='data/input', filename='indiv.total', minYe
 # - By default the filenames are obtained using the suffix as follows:
 #     - indiv<suffix>.terms
 #     - joint<suffix>
-#     - indiv.full.total
+#     - indiv.total
 #   Otherwise the three filenames can be provided manually with filenames=c(indiv, joint, total). 'suffix' is ignored in this case.
 #
 loadStaticData <- function(dir='data/input/static/',suffix='.min100.ND',merged=TRUE, filenames=NULL) {
   if (is.null(filenames)) {
     indivFile <- paste0('indiv',suffix,'.terms')
     jointFile <- paste0('joint',suffix)
-    totalFile <- 'indiv.full.total'
+    totalFile <- 'indiv.total'
   } else {
     indivFile <- flienames[1]
     jointFile <- flienames[2]
