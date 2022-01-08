@@ -158,13 +158,21 @@ readMultipleSurgesFiles <- function(dir='data/output',ma_windows=c(1,3,5),measur
 
 # moving average on a vector 'x' with window size 'window' (centered).
 ma <- function(x,n=5,padWithNA=FALSE) {
-  cx <- c(0,cumsum(x))
-  r <- (cx[(n+1):length(cx)] - cx[1:(length(cx) - n)]) / n
-  if (padWithNA) {
-    nas <- rep(NA, (n-1)/2)
-    c(nas,r,nas)
+  if (length(x)<n) { # not enough values to calculate 
+    if (padWithNA) { 
+      rep(NA, length(x))
+    } else {
+      stop('Error in ma: not enough values in vector ')
+    }
   } else {
-    r
+    cx <- c(0,cumsum(x))
+    r <- (cx[(n+1):length(cx)] - cx[1:(length(cx) - n)]) / n
+    if (padWithNA) {
+      nas <- rep(NA, (n-1)/2)
+      c(nas,r,nas)
+    } else {
+      r
+    }
   }
 }
 
@@ -208,7 +216,7 @@ computeMovingAverage <- function(mainDT, totalsDT, window=1) {
 #  browser()
 #  print(mainDT)
 #  print(totalsDT)
-  mainDT[,c('ma','ma.total') := list(ma(freq, window, padWithNA = TRUE), selectTotalYears(totalsDT,min(year),max(year))),by=key(mainDT)]
+#  mainDT[,c('ma','ma.total') := list(ma(freq, window, padWithNA = TRUE), selectTotalYears(totalsDT,min(year),max(year))),by=key(mainDT)]
   mainDT[,ma := ma(freq, window, padWithNA = TRUE),by=key(mainDT)]
   mainDT[,ma.total := selectTotalYears(totalsDT,min(year),max(year)),by=key(mainDT)]
   mainDT
