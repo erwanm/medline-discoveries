@@ -55,37 +55,37 @@ acrossDir="$outputDir/static"
 
 # generate indiv data across years with filtered min freq version
 if [ -z "$optPTC" ]; then
-    sum-freq-over-years.py "$indivFreqDir" 0 3000 "$acrossDir"/indiv.full
+    sum-freq-over-years.py "$indivFreqDir" 0 3000 "$acrossDir"/indiv
 else
     tmpPTC=$(mktemp --tmpdir=/tmp prepare-dataset.XXXXXXXX)
     sum-freq-over-years.py "$indivFreqDir" 0 3000 "$tmpPTC"
-    ptc-aggregate-across-types.py "$tmpPTC" "$acrossDir"/indiv.full
-    cat "$tmpPTC.total" >"$acrossDir"/indiv.full.total
+    ptc-aggregate-across-types.py "$tmpPTC" "$acrossDir"/indiv
+    cat "$tmpPTC.total" >"$acrossDir"/indiv.total
     rm -f "$tmpPTC"
 fi
-echo $minFreq | filter-column.py -m "$acrossDir"/indiv.full 2 >"$acrossDir"/indiv.min${minFreq}
+echo $minFreq | filter-column.py -m "$acrossDir"/indiv 2 >"$acrossDir"/indiv.min${minFreq}
 
 # generate indiv data by year with filtered min freq version
 tmpCat=$(mktemp --tmpdir=/tmp prepare-dataset.XXXXXXXX)
 cat "$indivFreqDir"/???? >"$tmpCat"
-cat "$acrossDir"/indiv.min${minFreq} | cut -f 1 | filter-column.py $optPTC "$tmpCat" 2 >"$outputDir"/indiv.full.min${minFreq}
+cat "$acrossDir"/indiv.min${minFreq} | cut -f 1 | filter-column.py $optPTC "$tmpCat" 2 >"$outputDir"/indiv.min${minFreq}
 rm -f $tmpCat
-cat "$indivFreqDir"/*.total >"$outputDir"/indiv.full.total
+cat "$indivFreqDir"/*.total >"$outputDir"/indiv.total
 
 # generate joint data across years with filtered min freq version
 if [ -z "$optPTC" ]; then
-    sum-freq-over-years.py -j "$jointFreqDir" 0 3000 "$acrossDir"/joint.full
+    sum-freq-over-years.py -j "$jointFreqDir" 0 3000 "$acrossDir"/joint
 else
     tmpPTC=$(mktemp --tmpdir=/tmp prepare-dataset.XXXXXXXX)
     sum-freq-over-years.py -j "$jointFreqDir" 0 3000 "$tmpPTC"
-    ptc-aggregate-across-types.py -j "$tmpPTC" "$acrossDir"/joint.full
+    ptc-aggregate-across-types.py -j "$tmpPTC" "$acrossDir"/joint
     rm -f "$tmpPTC"
 fi
-echo $minFreq | filter-column.py -m "$acrossDir"/joint.full 3 >"$acrossDir"/joint.min${minFreq}
+echo $minFreq | filter-column.py -m "$acrossDir"/joint 3 >"$acrossDir"/joint.min${minFreq}
 
 # generate joint data by year with filtered min freq version
 tmpCat=$(mktemp --tmpdir=/tmp prepare-dataset.XXXXXXXX)
 cat "$jointFreqDir"/???? >"$tmpCat"
-cat "$acrossDir"/joint.min${minFreq} | cut -f 1,2 | filter-column.py  $optPTC $tmpCat 2,3 >"$outputDir"/joint.full.min${minFreq}
+cat "$acrossDir"/joint.min${minFreq} | cut -f 1,2 | filter-column.py  $optPTC $tmpCat 2,3 >"$outputDir"/joint.min${minFreq}
 rm -f $tmpCat
 
