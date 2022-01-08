@@ -25,7 +25,7 @@ default_measures = c('prob.joint','scp', 'pmi', 'npmi', 'mi', 'nmi', 'pmi2', 'pm
 ##### LOAD/SAVE FUNCTIONS
 
 # returns the indiv or joint data as a data table, with result DT key set as the concept or pair of concepts
-loadDynamicData <- function(dir='data/input',indivOrJoint='indiv',suffix='.ND.min100', minYear=1950, maxYear=2020) {
+loadDynamicData <- function(dir='data/input',indivOrJoint='indiv',suffix='.min100.ND', minYear=1950, maxYear=2020) {
   f <- paste(dir,paste0(indivOrJoint,suffix),sep='/')
   if (indivOrJoint == 'indiv') {
     d<-fread(f,col.names=c('year','concept','freq'),drop=4)
@@ -38,7 +38,7 @@ loadDynamicData <- function(dir='data/input',indivOrJoint='indiv',suffix='.ND.mi
 }
 
 
-loadDynamicTotalFile <- function(dir='data/input', filename='indiv.full.total', minYear=1950, maxYear=2020) {
+loadDynamicTotalFile <- function(dir='data/input', filename='indiv.total', minYear=1950, maxYear=2020) {
   f <- paste(dir, filename, sep='/')
   d<-fread(f, col.name=c('year','total'),drop=c(2,4))
   d[d$year>=minYear & d$year<=maxYear,]
@@ -56,10 +56,10 @@ loadDynamicTotalFile <- function(dir='data/input', filename='indiv.full.total', 
 #     - indiv.full.total
 #   Otherwise the three filenames can be provided manually with filenames=c(indiv, joint, total). 'suffix' is ignored in this case.
 #
-loadStaticData <- function(dir='data/input/static/',suffix='.ND.min100',merged=TRUE, filenames=NULL) {
+loadStaticData <- function(dir='data/input/static/',suffix='.min100.ND',merged=TRUE, filenames=NULL) {
   if (is.null(filenames)) {
-    indivFile <- paste0(indiv,suffix,'.terms')
-    jointFile <- paste0(joint,suffix)
+    indivFile <- paste0('indiv',suffix,'.terms')
+    jointFile <- paste0('joint',suffix)
     totalFile <- 'indiv.full.total'
   } else {
     indivFile <- flienames[1]
@@ -82,7 +82,7 @@ loadStaticData <- function(dir='data/input/static/',suffix='.ND.min100',merged=T
 
 
 
-computeAndSaveSurgesData <- function(dir='data/input', outputDir='data/output/', suffix='.ND.min100',ma_windows=c(1,3,5),measures=default_measures, indicators=c('rate','diff')) {
+computeAndSaveSurgesData <- function(dir='data/input', outputDir='data/output/', suffix='.min100.ND',ma_windows=c(1,3,5),measures=default_measures, indicators=c('rate','diff')) {
   if (!dir.exists(outputDir)) {
     print(paste('creating directory', outputDir))
     dir.create(outputDir,recursive = TRUE)
@@ -112,7 +112,7 @@ computeAndSaveSurgesData <- function(dir='data/input', outputDir='data/output/',
 
 
 
-loadSurgesData <- function(dir='data/output', suffix='.ND.min100', ma_window=1,measure='prob.joint', indicator='diff',dropMeasuresCols=FALSE) {
+loadSurgesData <- function(dir='data/output', suffix='.min100.ND', ma_window=1,measure='prob.joint', indicator='diff',dropMeasuresCols=FALSE) {
   f <- paste(dir,paste(measure,indicator,ma_window,suffix,'tsv',sep='.'),sep='/')
   if (dropMeasuresCols) {
     d<-fread(f, drop=default_measures)

@@ -44,9 +44,9 @@ dataPath <- 'data/input'
 outputDir='data/output'
 
 # by default using the Medline ND subset:
-data.suffix <- '.ND.min100'
+data.suffix <- '.min100.ND'
 # uncomment the following line in order to use the full Medline data instead:
-# data.suffix <- '.full.min100'
+# data.suffix <- '.min100'
 
 # set to TRUE for quick execution with a random subset of the data
 shortVersion <- TRUE

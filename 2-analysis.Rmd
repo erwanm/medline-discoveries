@@ -41,8 +41,13 @@ dataPathInput <- 'data/input'
 dataPathInputStatic <- paste(dataPathInput,'static',sep='/')
 # directory for the output data (extracted surges from the main process in step 1)
 dataPathOutput <- 'data/output'
-# filenames suffix (see 'input data format' below)
-data.suffix <- '.ND.min100'
+
+# by default using the Medline ND subset:
+# the static suffix is different from the dynamic one for some reason (sorry for that)
+data.suffix <- '.min100.ND'
+# uncomment the following line in order to use the full Medline data instead:
+# data.suffix <- '.min100'
+
 # set to TRUE for quick execution with a random subset of the data
 shortVersion <- TRUE
 # set to TRUE in order to save the graphs used in the paper
@@ -66,10 +71,10 @@ By default the input data is expected in the subdirectory `data/input` and the o
 
 
 ```{r load}
-dynamic_joint <- loadDynamicData(dataPath,indivOrJoint = 'joint')
-dynamic_indiv <- loadDynamicData(dataPath,indivOrJoint = 'indiv')
-dynamic_total <- loadDynamicTotalFile(dataPath)
-static_data <- loadStaticData(dataPathStatic)
+dynamic_joint <- loadDynamicData(dataPathInput,suffix=data.suffix, indivOrJoint = 'joint')
+dynamic_indiv <- loadDynamicData(dataPathInput,suffix=data.suffix, indivOrJoint = 'indiv')
+dynamic_total <- loadDynamicTotalFile(dataPathInput)
+static_data <- loadStaticData(dir=dataPathInputStatic,suffix=data.suffix)
 ```
 
 
