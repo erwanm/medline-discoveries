@@ -11,7 +11,7 @@ function usage {
     echo
     echo "Usage: $0 <full prepared dir> <targets file> <UMLS dir> <UMLS semantic groups file>" 
     echo 
-    echo "  - input dir = result of prepare-dataset.sh, contains indiv.full.min100 and joint.full.min100"
+    echo "  - input dir = result of prepare-dataset.sh, contains indiv.min$minFreq and joint.min$minFreq"
     echo "  - resulting files created in the same directory"
     echo "  - Requires tdc-tools/code and medline-discoveries/code in PATH."
     echo "  - <UMLS sem groups file> UMLS group hierarchy file which can be downloaded from:"
@@ -22,7 +22,7 @@ function usage {
     echo "    -h: print this help message."
     echo "    -p: PTC data: MeSH decriptors with prefix (for add-terms)"
     echo "    -m: MED data: MeSH descriptors (for add-terms)"
-    echo "    -f <min freq> default: $minFreq. input files named <indiv|joint>.full.min<min freq>"
+    echo "    -f <min freq> default: $minFreq. input files named <indiv|joint>.min<min freq>"
     echo "    -t <n> number of top PMI/NPMI to extract from the ND static data. 0 for ignoring this step"
     echo "       completely. Default: $topPMI."
     echo ""
@@ -61,10 +61,10 @@ targetsFile="$2"
 umlsDir="$3"
 semGroups="$4"
 
-indivFullFile="$inputDir/indiv.full.min${minFreq}"
-jointFullFile="$inputDir/joint.full.min${minFreq}"
-indivNDFile="$inputDir/indiv.ND.min${minFreq}"
-jointNDFile="$inputDir/joint.ND.min${minFreq}"
+indivFullFile="$inputDir/indiv.min${minFreq}"
+jointFullFile="$inputDir/joint.min${minFreq}"
+indivNDFile="$inputDir/indiv.min${minFreq}.ND"
+jointNDFile="$inputDir/joint.min${minFreq}.ND"
 totalFile="$inputDir/full.total"
 
 noYearDir="$inputDir/static"
@@ -87,7 +87,7 @@ rm -f "$tmpIndiv"
 #outputGroup="$noYearDir/group-ND.concepts"
 #tmpJoint=$(mktemp --tmpdir=/tmp "$(basename $0).indiv.XXXXXXXXXX")
 #cat "$noYearJoint" | grep "GROUP:ND"  > "$tmpJoint"
-#calculate-association-measure.py -m pmi,npmi "$tmpJoint" "$noYearIndiv" "$noYearDir/indiv.full.total" "$outputGroup.pmi"
+#calculate-association-measure.py -m pmi,npmi "$tmpJoint" "$noYearIndiv" "$noYearDir/indiv.total" "$outputGroup.pmi"
 #rm -f "$tmpJoint"
 ##   filter positive PMI pairs
 #echo 0 | filter-column.py -m "$outputGroup.pmi" 4 >"$outputGroup.pos-pmi"
@@ -99,7 +99,7 @@ rm -f "$tmpIndiv"
 
 # 2. calculate PMI in the "across years" data
 if [ $topPMI -gt 0 ]; then
-    calculate-association-measure.py -m pmi,npmi "$noYearJoint.ND" "$noYearIndiv.ND" "$noYearDir/indiv.full.total" "$noYearJoint.ND.pmi"
+    calculate-association-measure.py -m pmi,npmi "$noYearJoint.ND" "$noYearIndiv.ND" "$noYearDir/indiv.total" "$noYearJoint.ND.pmi"
     #   filter positive PMI pairs
     echo 0 | filter-column.py -m "$noYearJoint.ND.pmi" 4 >"$noYearJoint.ND.pos-pmi"
     #   extract top N PMI and NPMI
@@ -122,4 +122,7 @@ if [ $topPMI -gt 0 ]; then
     cut -f 1,2 "$noYearJoint.ND.pos-pmi" | filter-column.py $optPTC "$jointFullFile" 2,3 >"$jointNDFile.pos-pmi"
 fi
 
+
+# 4. adding term and group column to static indiv files
+ls "$noYearIndiv" "$noYearIndiv.ND" | add-term-from-umls.py $optAddTerm -i 1 -g "$semGroups" "$umlsDir" .terms
 
