@@ -113,7 +113,7 @@ computeAndSaveSurgesData <- function(dir='data/input', outputDir='data/output/',
 
 
 loadSurgesData <- function(dir='data/output', suffix='.min100.ND', ma_window=1,measure='prob.joint', indicator='diff',dropMeasuresCols=FALSE) {
-  f <- paste(dir,paste(measure,indicator,ma_window,suffix,'tsv',sep='.'),sep='/')
+  f <- paste(dir,paste0(paste(measure,indicator,ma_window,sep='.'),suffix,'.tsv'),sep='/')
   if (dropMeasuresCols) {
     d<-fread(f, drop=default_measures)
   } else {
@@ -839,13 +839,13 @@ matchSurgesWithGold <- function(surgesDT, goldDT, selectedCols=c('c1','c2','year
 }
 
 
-collectEvalDataSurgesAgainstGold <- function(goldDT, dir='data/input',evalAt=NA,ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'), indicators=c('diff','rate')) {
+collectEvalDataSurgesAgainstGold <- function(goldDT, dir='data/input',suffix='.min100.ND',evalAt=NA,ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'), indicators=c('diff','rate')) {
   l <- list()
   for (w in ma_windows) {
     for (m in measures) {
       for (i in indicators) {
-        #        print(paste('w=',w,'m=',m,'i=',i))
-        d0<-loadSurgesData(dir,w,m,i)
+#        print(paste('w=',w,'m=',m,'i=',i))
+        d0<-loadSurgesData(dir,suffix,w,m,i)
         setkey(d0,c1,c2)
         originalSize <- nrow(d0)
         for (maxSize in evalAt) {
@@ -888,8 +888,8 @@ evalSingleCase <- function(dt, eval_windows,proportion=TRUE) {
   rbindlist(l)
 }
 
-evalSurgessAgainstGold <- function(goldDT, dir,evalAt=c(100,1000),eval_windows=c(1,3,5),ma_windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'), indicators=c('diff','rate')) {
-  d <- collectEvalDataSurgesAgainstGold(goldDT, dir,evalAt,ma_windows,measures, indicators)
+#   d <- collectEvalDataSurgesAgainstGold(..)
+evalSurgessAgainstGold <- function(d,eval_windows) {
   setkey(d,ma.window,measure,indicator,mode,eval.at)
   d[,evalSingleCase(.SD, eval_windows),by=key(d)]
 }

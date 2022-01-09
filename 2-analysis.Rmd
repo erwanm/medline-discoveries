@@ -219,14 +219,17 @@ ggsave('expl-trend-distrib.pdf',g,width=20,height=8,units = "cm")
 TODO
 
 ```{r gold}
-gold <- loadGoldDiscoveries(todo)
+gold <- loadGoldDiscoveries(dir='data',file='ND-discoveries-year.tsv')
+kable(gold)
 ```
+
 
 ## Parameters
 
 
 ```{r eval}
-res.eval<-evalSurgessAgainstGold(gold,'data/21-extract-discoveries/recompute-with-ND-group/MED',evalAt=NA)
+data.eval <- collectEvalDataSurgesAgainstGold(gold, dir='data/output',suffix=data.suffix,evalAt=NA)
+res.eval<-evalSurgessAgainstGold(data.eval,eval_windows = c(1,3,5))
 ```
 
 ### Top individual configurations
