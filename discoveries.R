@@ -115,7 +115,7 @@ computeAndSaveSurgesData <- function(dir='data/input', outputDir='data/output/',
 loadSurgesData <- function(dir='data/output', suffix='.min100.ND', ma_window=1,measure='prob.joint', indicator='diff',dropMeasuresCols=FALSE) {
   f <- paste(dir,paste0(paste(measure,indicator,ma_window,sep='.'),suffix,'.tsv'),sep='/')
   if (dropMeasuresCols) {
-    d<-fread(f, drop=default_measures)
+    suppressWarnings(d<-fread(f, drop=default_measures))
   } else {
     d<-fread(f)
     
@@ -130,13 +130,13 @@ loadGoldDiscoveries <- function(dir='data',file='ND-discoveries-year.tsv') {
 }
 
 
-readMultipleSurgesFiles <- function(dir='data/output',ma_windows=c(1,3,5),measures=default_measures, indicators=c('diff','rate'), firstYear=TRUE) {
+readMultipleSurgesFiles <- function(dir='data/output',suffix='.min100.ND',ma_windows=c(1,3,5),measures=default_measures, indicators=c('diff','rate'), firstYear=TRUE) {
   l <- list()
   for (w in ma_windows) {
     for (m in measures) {
       for (i in indicators) {
         #        print(paste('w=',w,'m=',m,'i=',i))
-        d<-loadSurgesData(dir,w,m,i,dropMeasuresCols=TRUE)
+        d<-loadSurgesData(dir,suffix,w,m,i,dropMeasuresCols=TRUE)
         setkey(d,c1,c2)
         if (firstYear) {
           d <- d[,.SD[year==min(year)],by=key(d)]
@@ -148,7 +148,9 @@ readMultipleSurgesFiles <- function(dir='data/output',ma_windows=c(1,3,5),measur
       }
     }
   }
-  rbindlist(l)
+  dt<-rbindlist(l)
+  setkey(dt, c1, c2)
+  dt
 }
 
 
