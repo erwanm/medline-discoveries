@@ -49,7 +49,7 @@ data.suffix <- '.min100.ND'
 # data.suffix <- '.min100'
 
 # set to TRUE for quick execution with a random subset of the data
-shortVersion <- TRUE
+shortVersion <- FALSE
 ```
 
 
