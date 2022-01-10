@@ -54,6 +54,9 @@ shortVersion <- FALSE
 savePaperGraphs <- TRUE
 ```
 
+Notes:
+* If the option `shortVersion` is set to `FALSE`, the process requires at least 16GB RAM. 
+* Note: the option to use the full Medline data (`data.suffix <- '.min100'`) has not been tested with this Rmd document.
 
 ```{r initialization}
 source('discoveries.R')
