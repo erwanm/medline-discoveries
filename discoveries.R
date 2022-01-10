@@ -764,13 +764,20 @@ doublePlotAcrossTime <- function(dynamicJointDT, surgesDT,bins=71,fontsize=14,ma
             nrow = 2)
 }
 
-calculateDiffYears <- function(surgesDT, indivDT) {
+# calculates also for joint if not null
+calculateDiffYears <- function(surgesDT, indivDT,jointDT=NULL) {
   firstocc <- indivDT[,.SD[year==min(year),],by=key(indivDT)]
   firstocc[,freq:=NULL]
   d<-merge(surgesDT,firstocc,by.x='c1',by.y='concept',suffixes=c('','.first.c1'))
   d<-merge(d,firstocc,by.x='c2',by.y='concept',suffixes=c('','.first.c2'))
   d[,year.first.both:=pmax(year.first.c1,year.first.c2)]
   d[,duration:=year-year.first.both]
+  if (!is.null(jointDT)) {
+    firstjoint <- jointDT[,.SD[year==min(year),],by=key(jointDT)]
+    firstjoint[,freq:=NULL]
+    d <- merge(d, firstjoint,by=c('c1','c2'),suffixes=c('','.first.joint')) 
+    d[,duration.joint:=year-year.first.joint]
+  }
   d
 }
 

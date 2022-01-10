@@ -98,8 +98,9 @@ Note: in some of the graphs (trend distribution), the representation of all the 
 ```{r, init.data.short}
 if (shortVersion) {
   dynamic_joint<-pickRandomDynamic(dynamic_joint,n=1000)
+  dynamic_joint.rndsubset<-dynamic_joint
 } else {
-  dynamic_joint<-pickRandomDynamic(dynamic_joint,n=20000)
+  dynamic_joint.rndsubset<-pickRandomDynamic(dynamic_joint,n=20000)
 }
 ```
 
@@ -193,7 +194,7 @@ g
 
 
 ```{r sample.ma}
-relations.ma <- computeMovingAverage(dynamic_joint,dynamic_total, window=5)
+relations.ma <- computeMovingAverage(dynamic_joint.rndsubset,dynamic_total, window=5)
 indiv.ma <- computeMovingAverage(dynamic_indiv,dynamic_total, window=5)
 ```
 
@@ -301,18 +302,41 @@ g
 
 ```{r eval.overlap.save, echo=savePaperGraphs, eval=savePaperGraphs}
 ggsave('heatmap-overlap.pdf',g,width=20,height=15,unit='cm')
-
 ```
 
 ## Distribution of surges across time
 
-```{r eval.years}
-doublePlotAcrossTime(dynamic_joint, surges,bins=68,fontsize=16)
+### Duration between the year of the first cooccurrence and the surge year
+
+
+```{r eval.years.loading}
+surges.scp <-loadSurgesData(dir=dataPathOutput,suffix = data.suffix,ma_window = 5,measure='scp',indicator = 'diff')
+
 ```
 
+```{r eval.years.joint}
+x<-calculateDiffYears(surges.scp,dynamic_indiv,dynamic_joint)
+ggplot(x,aes(duration.joint,fill=first.surge))+geom_histogram()
+```
+
+### Trend of surges by year
+
+```{r eval.years.trend}
+ggplot(surges.scp,aes(as.factor(year),trend))+geom_boxplot()+ylim(c(0,.02))+theme(axis.text.x=element_text(angle = -90, hjust = 0))
+```
+
+### First cooccurrences and surges
+
+```{r eval.years}
+doublePlotAcrossTime(dynamic_joint, surges.scp,bins=68,fontsize=16)
+```
+
+### Combination of multiple plots
+
+Right plot: duration between the year where the latest of the two concepts appears (individual occurrence) and surge year:
 
 ```{r eval.years.threeplots}
-g<-threePlotsAboutYears(surges, dynamic_indiv, dynamic_joint)
+g<-threePlotsAboutYears(surges.scp, dynamic_indiv, dynamic_joint)
 g
 ```
 
