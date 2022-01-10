@@ -30,7 +30,7 @@ This document is part of the documentation for the [Medline Discoveries reposito
 This document was generated from an [R Markdown](https://rmarkdown.rstudio.com/) source file. The source file is provided in the repository, allowing full reproducibility of the experiments presented in the paper. It can be executed through the RStudio interface ("knit" button) or as follows:
 
 ```
-rmarkdown::render('1-detecting-surges.Rmd')
+rmarkdown::render('2-analysis.Rmd')
 ```
 
 The `.Rmd` source document can be configured by modifying the following lines:
@@ -55,8 +55,9 @@ savePaperGraphs <- TRUE
 ```
 
 Notes:
-* If the option `shortVersion` is set to `FALSE`, the process requires at least 16GB RAM. 
-* Note: the option to use the full Medline data (`data.suffix <- '.min100'`) has not been tested with this Rmd document.
+
+- If the option `shortVersion` is set to `FALSE`, the process requires at least 16GB RAM. 
+- Note: the option to use the full Medline data (`data.suffix <- '.min100'`) has not been tested with this Rmd document.
 
 ```{r initialization}
 source('discoveries.R')
@@ -266,7 +267,7 @@ res.eval<-evalSurgessAgainstGold(data.eval,eval_windows = c(1,3,5))
 
 ```{r eval.params.indiv}
 eval3 <- res.eval[eval.window==3 & mode=='first.year',]
-
+kable(head(res.eval3[order(-perf),],12))
 ```
 
 ### Comparison by parameter
