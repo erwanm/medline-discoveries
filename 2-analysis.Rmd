@@ -45,11 +45,11 @@ dataPathOutput <- 'data/output'
 # by default using the Medline ND subset:
 # the static suffix is different from the dynamic one for some reason (sorry for that)
 data.suffix <- '.min100.ND'
-# uncomment the following line in order to use the full Medline data instead:
+# uncomment the following line in order to use the full Medline data instead (not tested with this Rmd!):
 # data.suffix <- '.min100'
 
 # set to TRUE for quick execution with a random subset of the data
-shortVersion <- TRUE
+shortVersion <- FALSE
 # set to TRUE in order to save the graphs used in the paper
 savePaperGraphs <- TRUE
 ```
@@ -103,10 +103,6 @@ three_relations<-pickRandomDynamic(dynamic_joint,n=3, minFreqYear = 200)
 ## Displaying relations frequency across time with their concepts names
 
 Using the relations selected randomly above:
-
-```{r display1}
-displaySeveralPairsData(relation,static_data,dynamic_total)
-```
 
 
 ```{r display2}
@@ -220,18 +216,35 @@ ggsave('expl-trend-distrib.pdf',g,width=20,height=8,units = "cm")
 
 ## Gold standard data
 
-TODO
+Below the gold-standard dataset presented in the paper is loaded and displayed:
 
 ```{r gold}
-gold <- loadGoldDiscoveries(todo)
+gold <- loadGoldDiscoveries(dir='data',file='ND-discoveries-year.tsv')
+kable(gold)
 ```
+
 
 ## Parameters
 
 
 ```{r eval}
-res.eval<-evalSurgessAgainstGold(gold,'data/21-extract-discoveries/recompute-with-ND-group/MED',evalAt=NA)
+if (shortVersion) {
+  my.measures <- c('prob.joint','pmi','nmi','scp')
+  my.ma <- c(1,5)
+  my.indicators <- 'diff'
+} else {
+  my.measures <- c('prob.joint','pmi','npmi','mi','nmi','scp')
+  my.ma <- c(1,3,5)
+  my.indicators <- c('diff',"rate")
+}
+data.eval <- collectEvalDataSurgesAgainstGold(gold, dir=dataPathOutput,suffix=data.suffix,evalAt=NA,ma_windows=my.ma,measures=my.measures,indicators = my.indicators)
 ```
+
+
+```{r eval.res}
+res.eval<-evalSurgessAgainstGold(data.eval,eval_windows = c(1,3,5))
+```
+
 
 ### Top individual configurations
 
@@ -244,7 +257,7 @@ eval3 <- res.eval[eval.window==3 & mode=='first.year',]
 
 
 ```{r eval.params.plot}
-g<-displayAvgPerfByParam(rr,evalWindow = 3)
+g<-displayAvgPerfByParam(res.eval,evalWindow = 3)
 g
 ```
 
@@ -260,8 +273,8 @@ The overlap coefficient is calculated based on the number of relations in common
 * Note: in the code below the window of years (5) can be set to NA. In this case the overlap coefficient is only based on relations in common (no year comparison).
 
 ```{r eval.overlap}
-d<-readMultipleSurgesFiles(measures=c('prob.joint','nmi','npmi','scp','pmi','mi'),indicator='diff')
-mat<-correlationMatrixMultiParam(d, 5)
+surges<-readMultipleSurgesFiles(measures=my.measures,indicator='diff',ma_windows = my.ma)
+mat<-correlationMatrixMultiParam(surges, 5)
 g<-heatMapCommonMatrix(mat)
 g
 ```
@@ -274,7 +287,13 @@ ggsave('heatmap-overlap.pdf',g,width=20,height=15,unit='cm')
 ## Distribution of surges across time
 
 ```{r eval.years}
-g<-plotSurgesAcrossTime(bins=68,fontsize=16)
+doublePlotAcrossTime(dynamic_joint, surges,bins=68,fontsize=16)
+```
+
+
+```{r eval.years.threeplots}
+g<-threePlotsAboutYears(surges, dynamic_indiv, dynamic_joint)
+g
 ```
 
 ```{r eval.years.save, echo=savePaperGraphs, eval=savePaperGraphs}
