@@ -96,9 +96,9 @@ Note: in some of the graphs (trend distribution), the representation of all the 
 
 ```{r, init.data.short}
 if (shortVersion) {
-  dynamic_joint<-pickRandomDynamic(dynamic_joint,n=1000)
+  dynamic_joint<-pickRandomDynamic(dynamic_joint,n=500)
 } else {
-  dynamic_joint<-pickRandomDynamic(dynamic_joint,n=20000)
+  dynamic_joint<-pickRandomDynamic(dynamic_joint,n=5000)
 }
 ```
 
