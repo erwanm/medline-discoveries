@@ -311,6 +311,7 @@ ggsave('heatmap-overlap.pdf',g,width=20,height=15,unit='cm')
 
 ```{r eval.years.loading}
 surges.scp <-loadSurgesData(dir=dataPathOutput,suffix = data.suffix,ma_window = 5,measure='scp',indicator = 'diff')
+surges.scp[,first.surge:=(year==min(year)),by=key(surges.scp)]
 
 ```
 
