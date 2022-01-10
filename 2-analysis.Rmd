@@ -97,9 +97,9 @@ Note: in some of the graphs (trend distribution), the representation of all the 
 
 ```{r, init.data.short}
 if (shortVersion) {
-  dynamic_joint<-pickRandomDynamic(dynamic_joint,n=500)
+  dynamic_joint<-pickRandomDynamic(dynamic_joint,n=1000)
 } else {
-  dynamic_joint<-pickRandomDynamic(dynamic_joint,n=5000)
+  dynamic_joint<-pickRandomDynamic(dynamic_joint,n=20000)
 }
 ```
 
@@ -216,7 +216,7 @@ These graphs show the "flat" distribution (probably not a standard name):
 - The points are sorted by `trend` and their relative rank (rank divided by number of points) is plotted as X. In other words, the X axis represents all the quantile positions with respect to `trend`.
 - The `trend` value shown on the Y axis is normalized between [0,1] for every measure.
 
- Note that the random selection can affect the graph significantly since the extreme points are rare. 
+Note that the random selection can affect the graph significantly since the extreme points are rare. 
 
 ```{r trend.distrib3}
 #displayTrendDistribution2(relations.ma,indiv.ma,withRect = FALSE)
@@ -224,8 +224,11 @@ g<-displayTwoPlotsDistribTrend(relations.ma,indiv.ma)
 g
 ```
 
+Note: the `pdf` format makes the  graph take a very long time to load, this is why `png` is recommended for this graph.
+
 ```{r trend.distrib3.save, echo=savePaperGraphs, eval=savePaperGraphs}
 ggsave('expl-trend-distrib.pdf',g,width=20,height=8,units = "cm")
+ggsave('expl-trend-distrib.png',g,width=20,height=8,units = "cm")
 ```
 
 
@@ -267,7 +270,7 @@ res.eval<-evalSurgessAgainstGold(data.eval,eval_windows = c(1,3,5))
 
 ```{r eval.params.indiv}
 eval3 <- res.eval[eval.window==3 & mode=='first.year',]
-kable(head(res.eval3[order(-perf),],12))
+kable(head(eval3[order(-perf),],12))
 ```
 
 ### Comparison by parameter
