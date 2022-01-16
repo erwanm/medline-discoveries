@@ -49,9 +49,9 @@ data.suffix <- '.min100.ND'
 # data.suffix <- '.min100'
 
 # set to TRUE for quick execution with a random subset of the data
-shortVersion <- TRUE
+shortVersion <- FALSE
 # set to TRUE in order to save the graphs used in the paper
-savePaperGraphs <- FALSE
+savePaperGraphs <- TRUE
 ```
 
 Notes:
