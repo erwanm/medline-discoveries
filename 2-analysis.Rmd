@@ -49,9 +49,9 @@ data.suffix <- '.min100.ND'
 # data.suffix <- '.min100'
 
 # set to TRUE for quick execution with a random subset of the data
-shortVersion <- FALSE
+shortVersion <- TRUE
 # set to TRUE in order to save the graphs used in the paper
-savePaperGraphs <- TRUE
+savePaperGraphs <- FALSE
 ```
 
 Notes:
@@ -135,7 +135,7 @@ ggsave('expl1.pdf',g)
 ## Displaying measures
 
 ```{r measures1}
-g <- displayMultiMeasure(selectedALS,dynamic_indiv,dynamic_total,static_data,windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi'),excludeConceptsFromName = 'D000690')
+g <- displayMultiMeasure(selectedALS,dynamic_indiv,dynamic_total,static_data,windows=c(1,3,5),measures=c('prob.joint','pmi','npmi','mi','nmi','scp'),excludeConceptsFromName = 'D000690')
 g
 ```
 
@@ -312,7 +312,6 @@ ggsave('heatmap-overlap.pdf',g,width=20,height=15,unit='cm')
 ```{r eval.years.loading}
 surges.scp <-loadSurgesData(dir=dataPathOutput,suffix = data.suffix,ma_window = 5,measure='scp',indicator = 'diff')
 surges.scp[,first.surge:=(year==min(year)),by=key(surges.scp)]
-
 ```
 
 ```{r eval.years.joint}
@@ -344,3 +343,107 @@ g
 ```{r eval.years.save, echo=savePaperGraphs, eval=savePaperGraphs}
 ggsave('surges-by-year.pdf',g,width=20,height=12,unit='cm')
 ```
+
+## Relation between surges and frequency
+
+
+Here we observe how the joint frequency of the relation relates to the status as surge or not. 
+
+- The joint frequency is taken globally across all years (static data)
+- The data is observed by unique relation (pair of concepts), i.e. a relation either has at least one surge or doesn't (multiple surges not taken into account).
+
+The first graph below shows the distribution of surges by frequency, i.e. how many relations with surge have a particular frequency $x$. 
+
+The number of surges decreases when the frequency increases, but we can see below that this an effect of the higher number of relations with low frequency.
+
+```{r study.freq.1}
+d<-surges.scp
+d[,first.surge:=(year==min(year)),by=key(d)]
+d<-d[first.surge==TRUE,]
+x<-merge(d, static_data,suffixes=c('.dynamic','.static'))
+ggplot(x,aes(freq.joint.static))+geom_histogram()+xlim(c(0,100000))+scale_y_log10(labels = scales::comma_format(accuracy=1,big.mark = ",", decimal.mark = "."))
+```
+
+The following graph shows the number of relations with a surge among all the relations. Note that the Y axis is logarithmic, this makes the proportion of surges look higher. For instance the first bin contains a few thousands surges among 100 millions relations.
+
+On this graph it can be observed that the proportion of surges is roughly stable with respect to frequency.
+
+```{r study.freq.2}
+g1 <- surgesAmongRelationsByFreq(surges.scp,static_data)
+g1
+```
+
+The following graph shows the proportion of relations with surges vs. non surges for every bin. It should be noted that by definition, this graph doesn't represent the proportion of a bin among the whole data: the first bins (low frequency) contain a lot more relations than the others, as seen above.
+
+The X axis is cut at 10k in order to show the increase of the proportion of surges as frequency increases.
+
+```{r study.freq.3}
+g2 <- surgesAmongRelationsByFreq(surges.scp,static_data,asProportion = TRUE,freqmax = 10000,logY = FALSE)
+g2
+```
+
+```{r eval.freq.save, echo=savePaperGraphs, eval=savePaperGraphs}
+g<-plot_grid(g1,g2,labels=NULL,ncol=2)
+ggsave('surges-by-freq.pdf',g,width=20,height=8,unit='cm')
+```
+
+## Qualitative results
+
+Here we simply observe the top and bottom surges under various conditions, as described in the paper.
+
+```{r qualitative.init}
+surges.scp[,first.surge:=(year==min(year)),by=key(surges.scp)]
+surges.scp.terms <- addRelationName(surges.scp,static_data)
+```
+
+These are the top 12 relations by trend without any filtering:
+
+```{r qualitative.raw}
+kable(head(surges.scp.terms[order(-trend),.(year,c1,c2,group.c1,group.c2,relation)],12))
+```
+
+### Filtering by semantic group
+
+The flitering by semantic group can be done as follows. The [UMLS semantic groups](https://lhncbc.nlm.nih.gov/ii/tools/MetaMap/Docs/SemGroups_2018.txt) are used (the abbreviated name, first column). 
+
+```{r qualitative.groups1}
+filtered <- selectRelationsGroups(surges.scp.terms, groups1=c('CONC'), groups2=c('DISO','LIVB','ANAT')) 
+```
+
+
+
+By default both selected groups are 'DISO','CHEM','GENE','ANAT':
+
+```{r qualitative.groups2}
+filtered <- selectRelationsGroups(surges.scp.terms)
+```
+
+Top 12 after filtering:
+
+```{r qualitative.groups3}
+kable(head(filtered[order(-trend),.(year,c1,c2,group.c1,group.c2,relation)],12))
+```
+
+### Filtering by conditional probability
+
+Same relations as above with their conditional probabilities:
+
+```{r qualitative.raw.condi}
+kable(head(filtered[order(-trend),.(year,c1,relation,prob.C1GivenC2,prob.C2GivenC1)],12))
+```
+
+Relations with a least one High conditional probability are often trivial, since one of the concepts almost always appears with the other one. 
+
+The following function filters out relations which have at least one conditional probability higher than the threshold. It also has an option to keep only the first surge for any relation.
+
+```{r qualitative.filter.condi}
+filtered2<-filterCondProb(filtered,conditional.threshold = 0.6,onlyFirstSurge = TRUE)
+kable(head(filtered2[order(-trend),.(year,c1,relation,trend)],12))
+```
+
+### Bottom surges
+
+```{r qualitative.bottom}
+kable(head(filtered2[order(-trend),.(year,c1,relation,trend)],12))
+```
+

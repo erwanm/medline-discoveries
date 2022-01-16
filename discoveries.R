@@ -519,6 +519,22 @@ selectRelationsGroups <- function(relationsDT, groups1=c('DISO','CHEM','GENE','A
 }
 
 
+filterCondProb <- function(surgesDT, conditional.threshold=.7, onlyFirstSurge=FALSE,yearMin=NA,yearMax=NA) {
+  d <- surgesDT
+  if (onlyFirstSurge) {
+    d[,first.surge:=(year==min(year)),by=key(d)]
+    d<-d[first.surge==TRUE,]
+  }
+  d<-d[prob.C1GivenC2<=conditional.threshold & prob.C2GivenC1<=conditional.threshold,]
+  if (!is.na(yearMin)) {
+    d<-d[year>=yearMin,]
+  }
+  if (!is.na(yearMax)) {
+    d<-d[year>=yearMax,]
+  }
+  d
+}
+
 roundIfNotZero <- function(x,asPercentage) {
   res <- rep('',length(x))
   if (asPercentage) {
@@ -790,7 +806,8 @@ plotDiffYears <- function(surgesDT, indivDT,bins=71,fontsize=14) {
 
 threePlotsAboutYears <- function(surgesDT,indivDT,jointDT,bins=71,fontsize=14,marginAdjustMm=2) {
   g1 <- doublePlotAcrossTime(jointDT, surgesDT,bins,fontsize,marginAdjustMm,withLegend = FALSE)
-  g2 <- plotDiffYears(surgesDT,indivDT, bins,fontsize)
+  # the -1 is a hack, for some reason the graph looks better like this
+  g2 <- plotDiffYears(surgesDT,indivDT, bins-1,fontsize)
   plot_grid(g1,
             g2,
             labels = NULL,
@@ -798,6 +815,27 @@ threePlotsAboutYears <- function(surgesDT,indivDT,jointDT,bins=71,fontsize=14,ma
             ncol = 2)
 }
 
+
+# surgesDT <- loadSurgesData(...)
+surgesAmongRelationsByFreq <- function(surgesDT, static_data, bins=100,freqmax=100000,xLabel='joint frequency', fontsize=11, asProportion=FALSE, logY=TRUE) {
+  d<-surgesDT
+  d[,first.surge:=(year==min(year)),by=key(d)]
+  d<-d[first.surge==TRUE,]
+  x<-merge(d, static_data,suffixes=c('.dynamic','.static'),all.y=TRUE)
+  x[,surge:=!is.na(year),]
+  if (asProportion) {
+    mypos ='fill'
+    yLabel='proportion'
+  } else {
+    mypos = 'stack'
+    yLabel='count'
+  }
+  g <- ggplot(x, aes(freq.joint.static,fill=surge))+geom_histogram(position=mypos,bins=bins)+xlim(0,freqmax)+ylab(yLabel)+xlab(xLabel)+theme(text=element_text(size=fontsize),legend.position=c(.8,.8))
+  if (logY) {
+    g <- g +scale_y_log10(labels = scales::comma_format(accuracy=1,big.mark = ",", decimal.mark = "."))
+  }
+  g
+}
 
 
 ###### EVALUATION
