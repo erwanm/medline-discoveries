@@ -87,10 +87,10 @@ computeAndSaveSurgesData <- function(dir='data/input', outputDir='data/output/',
     print(paste('creating directory', outputDir))
     dir.create(outputDir,recursive = TRUE)
   }
-  dynamic_joint <- loadDynamicData(dir,indivOrJoint = 'joint')
+  dynamic_joint <- loadDynamicData(dir,suffix,indivOrJoint = 'joint')
   # for debugging:
   # dynamic_joint<-pickRandomDynamic(dynamic_joint,n=1000)
-  dynamic_indiv <- loadDynamicData(dir,indivOrJoint = 'indiv')
+  dynamic_indiv <- loadDynamicData(dir,suffix,indivOrJoint = 'indiv')
   dynamic_total <- loadDynamicTotalFile(dir)
   for (w in ma_windows) {
     joint.ma <- computeMovingAverage(dynamic_joint,dynamic_total, window=w)
@@ -114,6 +114,7 @@ computeAndSaveSurgesData <- function(dir='data/input', outputDir='data/output/',
 
 loadSurgesData <- function(dir='data/output', suffix='.min100.ND', ma_window=1,measure='prob.joint', indicator='diff',dropMeasuresCols=FALSE) {
   f <- paste(dir,paste0(paste(measure,indicator,ma_window,sep='.'),suffix,'.tsv'),sep='/')
+  print(f)
   if (dropMeasuresCols) {
     suppressWarnings(d<-fread(f, drop=default_measures))
   } else {
@@ -530,7 +531,7 @@ filterCondProb <- function(surgesDT, conditional.threshold=.7, onlyFirstSurge=FA
     d<-d[year>=yearMin,]
   }
   if (!is.na(yearMax)) {
-    d<-d[year>=yearMax,]
+    d<-d[year<=yearMax,]
   }
   d
 }
