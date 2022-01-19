@@ -35,11 +35,11 @@ defaultYearRange <- c(2000,2020)
 yearMin<-1950
 yearMax<-2020
 
-viewOptionsList <- c('Show first surge only for each relation' = 'firstYear',
-                     'Adjust surge year (next non-zero year)' = 'adjustYear',
-                     'Sort by year (default: sort by tend)' = 'sortByYear',
+viewOptionsList <- c('First surge only' = 'firstYear',
+                     'Adjust surge year' = 'adjustYear',
+                     'Sort by year (default: tend)' = 'sortByYear',
                      'Show MeSH descriptors' = 'showDescriptors',
-                     'Show conditional probabilities' = 'showConditional',
+                     'Show conditional probs' = 'showConditional',
                      'Show semantic groups' = 'showGroups'
                      )
 selected=defaultViewOptions <- c('firstYear','showDescriptors')
@@ -55,22 +55,37 @@ ui <- fluidPage(
 #      helpText(tags$a(href=linkUserGuide,target="_blank", "User Guide")),
     
       # dataset selection
-      selectInput("sourceSelectionInput", 
-                  label = "Source dataset",
-                  choices = sourcesList,
-                  selected = defaultSource),
+      pickerInput(
+        inputId = "sourceSelectionInput",
+        label = "Source dataset: ",
+        choices = sourcesList,
+        selected = defaultSource,
+#        options = list(
+#          `actions-box` = TRUE,
+#          size = 10,
+#          `selected-text-format` = "count > 4"
+        width = "fit"
+        ),
+#        selectInput("sourceSelectionInput", 
+#                  label = "Source dataset",
+#                  choices = sourcesList,
+#                  selected = defaultSource),
       fluidRow(
-        column(7, radioButtons("windowInput", "Moving avg window",
-                  windowsList, 
-                  selected = defaultWindow, inline=TRUE)),
-        column(5, radioButtons("indicatorInput", "Indicator",
-                  indicatorsList,
-                  selected = defaultIndicator, inline=TRUE))
+        column(4, radioButtons("windowInput", "Moving avg window",
+                               windowsList, 
+                               selected = defaultWindow, inline=TRUE)),
+        column(2, radioButtons("indicatorInput", "Indicator",
+                               indicatorsList,
+                               selected = defaultIndicator, inline=TRUE)),
+        column(6,  radioButtons("measureInput", "Measure",
+                               associationMeasureList, 
+                               selected = defaultMeasure, inline=TRUE)
+        )
       ),
         
-      radioButtons("measureInput", "Measure",
-                   associationMeasureList, 
-                   selected = defaultMeasure, inline=TRUE),
+#      radioButtons("measureInput", "Measure",
+#                   associationMeasureList, 
+#                   selected = defaultMeasure, inline=TRUE),
 
       # semantic groups selection
       uiOutput("semanticTypesSelection"),
@@ -82,9 +97,9 @@ ui <- fluidPage(
       
       checkboxGroupInput("viewOptionsInput","View options", 
                          viewOptionsList,
-                         selected=defaultViewOptions),
+                         selected=defaultViewOptions, inline=TRUE),
       
-      downloadButton("downloadData", "Download")
+      downloadButton("downloadData", "Export discoveries")
 
     ),
     
@@ -250,10 +265,10 @@ server <- function(input, output) {
   
   output$downloadData <- downloadHandler(
     filename = function() {
-      paste(input$dataset, ".csv", sep = "")
+      paste(input$dataset, "discoveries.csv", sep = "")
     },
     content = function(file) {
-      write.csv(datasetInput(), file, row.names = FALSE)
+      write.csv(finalData(), file, row.names = FALSE)
     }
   )
   
