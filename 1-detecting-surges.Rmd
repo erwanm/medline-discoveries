@@ -52,7 +52,7 @@ data.suffix <- '.min100.ND'
 shortVersion <- FALSE
 ```
 
-* Note: using the full Medline data with `data.suffix <- '.min100'` requires at least 64GB RAM.
+* Note: using the full Medline data with `data.suffix <- '.min100'` requires at least 128GB RAM.
 
 ## Requirements
 
@@ -120,6 +120,8 @@ dynamic_joint <- loadDynamicData(dir=dataPath,suffix=data.suffix, indivOrJoint =
 dynamic_indiv <- loadDynamicData(dir=dataPath,suffix=data.suffix, indivOrJoint = 'indiv')
 dynamic_total <- loadDynamicTotalFile(dir=dataPath)
 ```
+
+The following can be used to select a random sample of relations:
 
 ```{r, init.data.short, eval=shortVersion}
 dynamic_joint<-pickRandomDynamic(dynamic_joint,n=1000)

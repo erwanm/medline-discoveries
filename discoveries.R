@@ -403,20 +403,9 @@ adjustZeroFreqSurgesSingleRelation.OBSOLETE <- function(dt,window) {
 }
 
 
+# OBSOLETE TOO (too slow)
 # for a single concept/relation
-# receives a vector of years and a dt with colymns 'year' and 'freq.joint'
-getNextNonZeroYear0 <- function(y, dt) {
-  laply(y, function(y0) { 
-    l <- dt[year>=y0 & freq.joint>0,year]
-    if (length(l)>0) {
-      min(l) 
-    } else {
-      NA
-    }
-  })
-} 
-
-getNextNonZeroYear <- function(dt) {
+getNextNonZeroYear.DEPRECATED <- function(dt) {
   nz <- dt[freq.joint>0,year]
   laply(dt[,year], function(y0) { 
     l <- nz[nz>=y0]
@@ -427,13 +416,30 @@ getNextNonZeroYear <- function(dt) {
     }
   })
 } 
-
-
 # receives a dt with colymns 'year' and 'freq.joint'
-addNextNonZeroYear <- function(dt) {
+addNextNonZeroYear.DEPRECATED <- function(dt) {
   dt[,next.nonzero.year := getNextNonZeroYear(.SD),by=key(dt)]
 }
 
+# only for surge years!
+addNextNonZeroYear <- function(d, maxiter=10) {
+  # non zero data
+  dnz <- d[freq.joint>0,.(year,c1,c2,freq.joint)]
+  # zero frequency 
+  dzf <- d[freq.joint==0 & surge==TRUE,.(year,c1,c2)]
+  dzf[,year.adjusted:=year]
+  print(paste('before while:',nrow(dzf)))
+  i<-1
+  while (i<maxiter & nrow(dzf)>0) {
+    dzf[,year.adjusted:=year.adjusted+1]
+    newdzf <- merge(dzf,dnz,by.x=c('c1','c2','year.adjusted'),by.y=c('c1','c2','year'))
+    d <- merge(d, newdzf[freq.joint>0,.(year,year.adjusted,c1,c2)],by=c('c1','c2','year'),all.x=TRUE)
+    dzf <- newdzf[freq.joint==0, .(year,year.adjusted,c1,c2)]
+    print(paste('end iteration:',i,nrow(dzf)))
+    i<-i+1
+  }
+  d
+}
 
 
 
