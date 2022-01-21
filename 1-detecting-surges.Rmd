@@ -229,7 +229,7 @@ detectSurges(rel.measures, globalThreshold=threshold)
 
 Using a moving average window (size higher than 1) can cause the surge year to be detected too early. This can lead to a meaningless result, in particular if the surge year has no cooccurrence at all. This step calculates the next non-zero year for every year and every relation. This "adjusted year" can be used to replace the surge year in some applications. 
 
-This step is optional and takes a fairly long time (5 to 10 minutes for the ND subset).
+This step is optional.
 
 ```{r adjust}
 rel.measures <- addNextNonZeroYear(rel.measures)

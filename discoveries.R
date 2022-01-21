@@ -438,6 +438,7 @@ addNextNonZeroYear <- function(d, maxiter=10) {
 #    print(paste('end iteration:',i,nrow(dzf)))
     i<-i+1
   }
+  setkey(d, c1, c2)
   d
 }
 
