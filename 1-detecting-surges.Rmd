@@ -69,7 +69,7 @@ This code requires R and a few R libraries:
 
 ### Data
 
-The input data used for the experiment described in the paper can be obtained at **TODO link**. The process used to collect this data is described in the [data collection part](https://erwanm.github.io/medline-discoveries/data-collection).
+The input data used for the experiment described in the paper can be obtained from [https://zenodo.org/record/5888572](https://zenodo.org/record/5888572). The process used to collect this data is described in the [data collection part](https://erwanm.github.io/medline-discoveries/data-collection).
 
 By default the input data is expected in the subdirectory `data/input`.
 

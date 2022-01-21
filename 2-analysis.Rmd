@@ -67,9 +67,9 @@ source('discoveries.R')
 
 The software requirements are the same as for [the first part](1-detecting-surges.html#software)
 
-This part requires the same input data as in [the first part](1-detecting-surges.html#data), but also the output generated as a result of applying the process. Both datasets can be downloaded at **TODO link**.
+This part requires the same input data as in [the first part](1-detecting-surges.html#data), but also the output generated as a result of applying the process. Both datasets can be downloaded from [https://zenodo.org/record/5888572](https://zenodo.org/record/5888572).
 
-By default the input data is expected in the subdirectory `data/input` and the output data (unsuprisingly)  in `data/output`.
+By default the input data is expected in the subdirectory `data/input` and the output data (unsurprisingly)  in `data/output`.
 
 ## Loading
 
