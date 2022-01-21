@@ -466,6 +466,9 @@ data.suffix &lt;- &#39;.min100.ND&#39;
 
 # set to TRUE for quick execution with a random subset of the data
 shortVersion &lt;- FALSE</code></pre>
+<ul>
+<li>Note: using the full Medline data with <code>data.suffix &lt;- &#39;.min100&#39;</code> requires at least 128GB RAM.</li>
+</ul>
 </div>
 </div>
 <div id="requirements" class="section level2">
@@ -532,6 +535,7 @@ shortVersion &lt;- FALSE</code></pre>
 <pre class="r"><code>dynamic_joint &lt;- loadDynamicData(dir=dataPath,suffix=data.suffix, indivOrJoint = &#39;joint&#39;)
 dynamic_indiv &lt;- loadDynamicData(dir=dataPath,suffix=data.suffix, indivOrJoint = &#39;indiv&#39;)
 dynamic_total &lt;- loadDynamicTotalFile(dir=dataPath)</code></pre>
+<p>The following can be used to select a random sample of relations:</p>
 <pre class="r"><code>dynamic_joint&lt;-pickRandomDynamic(dynamic_joint,n=1000)</code></pre>
 <div id="statistics" class="section level3">
 <h3>Statistics</h3>
@@ -616,6 +620,55 @@ print(threshold)</code></pre>
 <p>Using a moving average window (size higher than 1) can cause the surge year to be detected too early. This can lead to a meaningless result, in particular if the surge year has no cooccurrence at all. This step calculates the next non-zero year for every year and every relation. This “adjusted year” can be used to replace the surge year in some applications.</p>
 <p>This step is optional and takes a fairly long time (5 to 10 minutes for the ND subset).</p>
 <pre class="r"><code>addNextNonZeroYear(rel.measures)</code></pre>
+<pre><code>## [1] &quot;before while: 8861&quot;</code></pre>
+<pre><code>##                c1      c2 year  ma.total freq.joint ma.joint freq.c2 ma.c2
+##        1: D000054 D000058 1973  233368.4          0       NA       0   0.6
+##        2: D000054 D000058 1974  239637.8          0       NA       2   0.4
+##        3: D000054 D000058 1975  246509.6          0      0.0       0   0.4
+##        4: D000054 D000058 1976  254789.4          0      0.2       0   0.8
+##        5: D000054 D000058 1977  264182.6          0      0.2       0   0.4
+##       ---                                                                 
+## 13709210: D066263 D066329 2016 1106784.0         64     80.6     646 607.6
+## 13709211: D066263 D066329 2017 1143266.8        106     90.0     727 697.0
+## 13709212: D066263 D066329 2018 1226722.2        122     82.2     801 631.2
+## 13709213: D066263 D066329 2019        NA         92       NA     787    NA
+## 13709214: D066263 D066329 2020        NA         27       NA     195    NA
+##           freq.c1 ma.c1   prob.joint      prob.c1      prob.c2 prob.C1GivenC2
+##        1:     117 111.2           NA 0.0004764998 2.571042e-06             NA
+##        2:      98 100.0           NA 0.0004172964 1.669186e-06             NA
+##        3:     100  91.6 0.000000e+00 0.0003715880 1.622655e-06      0.0000000
+##        4:      71  81.0 7.849620e-07 0.0003179096 3.139848e-06      0.2500000
+##        5:      72  76.6 7.570521e-07 0.0002899510 1.514104e-06      0.5000000
+##       ---                                                                    
+## 13709210:     295 306.6 7.282360e-05 0.0002770188 5.489779e-04      0.1326531
+## 13709211:     396 341.6 7.872178e-05 0.0002987929 6.096565e-04      0.1291248
+## 13709212:     372 304.8 6.700784e-05 0.0002484670 5.145419e-04      0.1302281
+## 13709213:     352    NA           NA           NA           NA             NA
+## 13709214:     109    NA           NA           NA           NA             NA
+##           prob.C2GivenC1       pmi          nmi   prev.value         trend
+##        1:             NA        NA           NA           NA            NA
+##        2:             NA        NA           NA           NA            NA
+##        3:    0.000000000      -Inf 1.811312e-07           NA            NA
+##        4:    0.002469136  9.619096 1.562768e-03 1.811312e-07  0.0015625867
+##        5:    0.002610966 10.751903 1.918137e-03 1.562768e-03  0.0003553696
+##       ---                                                                 
+## 13709210:    0.262883235  8.903458 5.748678e-02 5.418878e-02  0.0032980021
+## 13709211:    0.263466042  8.755405 5.597039e-02 5.748678e-02 -0.0015163964
+## 13709212:    0.269685039  9.033771 5.778873e-02 5.597039e-02  0.0018183396
+## 13709213:             NA        NA           NA 5.778873e-02            NA
+## 13709214:             NA        NA           NA           NA            NA
+##           surge year.adjusted
+##        1: FALSE            NA
+##        2: FALSE            NA
+##        3: FALSE            NA
+##        4: FALSE            NA
+##        5: FALSE            NA
+##       ---                    
+## 13709210: FALSE            NA
+## 13709211: FALSE            NA
+## 13709212: FALSE            NA
+## 13709213: FALSE            NA
+## 13709214: FALSE            NA</code></pre>
 </div>
 <div id="statistics-surges" class="section level2">
 <h2>Statistics surges</h2>
@@ -695,43 +748,79 @@ kable(surges_stats[n.surges&lt;=10,])</code></pre>
 <p>A convenience function is provided which computes the surges based on multiple parameters and saves the resulting data to a file. This function encapsulates all the steps presented above.</p>
 <pre class="r"><code>system.time(computeAndSaveSurgesData(dataPath,outputDir=outputDir,suffix=data.suffix, ma_windows=c(1,3,5),measures=c(&#39;prob.joint&#39;,&#39;pmi&#39;,&#39;npmi&#39;,&#39;mi&#39;,&#39;nmi&#39;,&#39;scp&#39;),indicators=c(&#39;rate&#39;,&#39;diff&#39;)))</code></pre>
 <pre><code>## [1] &quot;processing and saving to data/output/prob.joint.rate.1.min100.ND.tsv&quot;
+## [1] &quot;before while: 0&quot;
 ## [1] &quot;processing and saving to data/output/prob.joint.diff.1.min100.ND.tsv&quot;
+## [1] &quot;before while: 0&quot;
 ## [1] &quot;processing and saving to data/output/pmi.rate.1.min100.ND.tsv&quot;
+## [1] &quot;before while: 0&quot;
 ## [1] &quot;processing and saving to data/output/pmi.diff.1.min100.ND.tsv&quot;
+## [1] &quot;before while: 0&quot;
 ## [1] &quot;processing and saving to data/output/npmi.rate.1.min100.ND.tsv&quot;
+## [1] &quot;before while: 0&quot;
 ## [1] &quot;processing and saving to data/output/npmi.diff.1.min100.ND.tsv&quot;
+## [1] &quot;before while: 0&quot;
 ## [1] &quot;processing and saving to data/output/mi.rate.1.min100.ND.tsv&quot;
+## [1] &quot;before while: 106&quot;
 ## [1] &quot;processing and saving to data/output/mi.diff.1.min100.ND.tsv&quot;
+## [1] &quot;before while: 0&quot;
 ## [1] &quot;processing and saving to data/output/nmi.rate.1.min100.ND.tsv&quot;
+## [1] &quot;before while: 117&quot;
 ## [1] &quot;processing and saving to data/output/nmi.diff.1.min100.ND.tsv&quot;
+## [1] &quot;before while: 0&quot;
 ## [1] &quot;processing and saving to data/output/scp.rate.1.min100.ND.tsv&quot;
+## [1] &quot;before while: 0&quot;
 ## [1] &quot;processing and saving to data/output/scp.diff.1.min100.ND.tsv&quot;
+## [1] &quot;before while: 0&quot;
 ## [1] &quot;processing and saving to data/output/prob.joint.rate.3.min100.ND.tsv&quot;
+## [1] &quot;before while: 9053&quot;
 ## [1] &quot;processing and saving to data/output/prob.joint.diff.3.min100.ND.tsv&quot;
+## [1] &quot;before while: 13&quot;
 ## [1] &quot;processing and saving to data/output/pmi.rate.3.min100.ND.tsv&quot;
+## [1] &quot;before while: 150&quot;
 ## [1] &quot;processing and saving to data/output/pmi.diff.3.min100.ND.tsv&quot;
+## [1] &quot;before while: 131170&quot;
 ## [1] &quot;processing and saving to data/output/npmi.rate.3.min100.ND.tsv&quot;
+## [1] &quot;before while: 160&quot;
 ## [1] &quot;processing and saving to data/output/npmi.diff.3.min100.ND.tsv&quot;
+## [1] &quot;before while: 111334&quot;
 ## [1] &quot;processing and saving to data/output/mi.rate.3.min100.ND.tsv&quot;
+## [1] &quot;before while: 140&quot;
 ## [1] &quot;processing and saving to data/output/mi.diff.3.min100.ND.tsv&quot;
+## [1] &quot;before while: 92&quot;
 ## [1] &quot;processing and saving to data/output/nmi.rate.3.min100.ND.tsv&quot;
+## [1] &quot;before while: 107&quot;
 ## [1] &quot;processing and saving to data/output/nmi.diff.3.min100.ND.tsv&quot;
+## [1] &quot;before while: 7680&quot;
 ## [1] &quot;processing and saving to data/output/scp.rate.3.min100.ND.tsv&quot;
+## [1] &quot;before while: 6647&quot;
 ## [1] &quot;processing and saving to data/output/scp.diff.3.min100.ND.tsv&quot;
+## [1] &quot;before while: 3062&quot;
 ## [1] &quot;processing and saving to data/output/prob.joint.rate.5.min100.ND.tsv&quot;
+## [1] &quot;before while: 58641&quot;
 ## [1] &quot;processing and saving to data/output/prob.joint.diff.5.min100.ND.tsv&quot;
+## [1] &quot;before while: 179&quot;
 ## [1] &quot;processing and saving to data/output/pmi.rate.5.min100.ND.tsv&quot;
+## [1] &quot;before while: 0&quot;
 ## [1] &quot;processing and saving to data/output/pmi.diff.5.min100.ND.tsv&quot;
+## [1] &quot;before while: 211215&quot;
 ## [1] &quot;processing and saving to data/output/npmi.rate.5.min100.ND.tsv&quot;
+## [1] &quot;before while: 0&quot;
 ## [1] &quot;processing and saving to data/output/npmi.diff.5.min100.ND.tsv&quot;
+## [1] &quot;before while: 192565&quot;
 ## [1] &quot;processing and saving to data/output/mi.rate.5.min100.ND.tsv&quot;
+## [1] &quot;before while: 58&quot;
 ## [1] &quot;processing and saving to data/output/mi.diff.5.min100.ND.tsv&quot;
+## [1] &quot;before while: 611&quot;
 ## [1] &quot;processing and saving to data/output/nmi.rate.5.min100.ND.tsv&quot;
+## [1] &quot;before while: 53&quot;
 ## [1] &quot;processing and saving to data/output/nmi.diff.5.min100.ND.tsv&quot;
+## [1] &quot;before while: 8861&quot;
 ## [1] &quot;processing and saving to data/output/scp.rate.5.min100.ND.tsv&quot;
-## [1] &quot;processing and saving to data/output/scp.diff.5.min100.ND.tsv&quot;</code></pre>
-<pre><code>##      user    system   elapsed 
-## 21859.181   230.168 22312.243</code></pre>
+## [1] &quot;before while: 14655&quot;
+## [1] &quot;processing and saving to data/output/scp.diff.5.min100.ND.tsv&quot;
+## [1] &quot;before while: 4106&quot;</code></pre>
+<pre><code>##     user   system  elapsed 
+## 1096.207  127.101 1238.405</code></pre>
 </div>
 </div>
 
