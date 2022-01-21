@@ -435,7 +435,7 @@ addNextNonZeroYear <- function(d, maxiter=10) {
     newdzf <- merge(dzf,dnz,by.x=c('c1','c2','year.adjusted'),by.y=c('c1','c2','year'))
     d <- merge(d, newdzf[freq.joint>0,.(year,year.adjusted,c1,c2)],by=c('c1','c2','year'),all.x=TRUE)
     dzf <- newdzf[freq.joint==0, .(year,year.adjusted,c1,c2)]
-    print(paste('end iteration:',i,nrow(dzf)))
+#    print(paste('end iteration:',i,nrow(dzf)))
     i<-i+1
   }
   d
