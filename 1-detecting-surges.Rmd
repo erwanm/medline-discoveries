@@ -232,7 +232,7 @@ Using a moving average window (size higher than 1) can cause the surge year to b
 This step is optional and takes a fairly long time (5 to 10 minutes for the ND subset).
 
 ```{r adjust}
-addNextNonZeroYear(rel.measures)
+rel.measures <- addNextNonZeroYear(rel.measures)
 ```
 
 

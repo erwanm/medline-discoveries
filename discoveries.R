@@ -428,7 +428,7 @@ addNextNonZeroYear <- function(d, maxiter=10) {
   # zero frequency 
   dzf <- d[freq.joint==0 & surge==TRUE,.(year,c1,c2)]
   dzf[,year.adjusted:=year]
-  print(paste('before while:',nrow(dzf)))
+#  print(paste('before while:',nrow(dzf)))
   i<-1
   while (i<maxiter & nrow(dzf)>0) {
     dzf[,year.adjusted:=year.adjusted+1]
