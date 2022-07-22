@@ -1003,3 +1003,16 @@ buildCommonMatrix <-function(d, yearWindow=NA) {
 }
 
 
+
+# relsDT = surges OR baseline 'surges', i.e. full dynamic_joint?
+prepareCmpBaseline <- function(relsDT, static_data, filterCondi=.6, yearMin=1990, yearMax=2020) {
+
+  # filter range of years,  conditional proba and apply first year only
+  res <- filterCondProb(relsDT, filterCondi, TRUE, yearMin, yearMax)
+
+  # add groups and filter the 4 groups
+  res <- addRelationName(res, static_data)
+  selectRelationsGroups(res)
+
+  
+}
