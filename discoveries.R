@@ -491,7 +491,7 @@ addDynamicAssociationToRelations <- function(relationsDT, indivDT, measures = 'p
 # mostly for visualization purposes
 #
 addRelationName <- function(relationsDT, staticData,excludeConceptsFromName=NULL) {
-  d <- merge(relationsDT, staticData,by=c('c1','c2'))
+  d <- merge(relationsDT, staticData[,.(c1,c2,term.c1,term.c2,group.c1,group.c2)],by=c('c1','c2'))
   d[,n1 := paste0(term.c1,' (',c1,")"),]
   d[,n2 := paste0(term.c2,' (',c2,")"),]
   d[,fulldescr := paste0(n1,' - ',n2),]
@@ -529,11 +529,19 @@ selectRelationsGroups <- function(relationsDT, groups1=c('DISO','CHEM','GENE','A
 
 filterCondProb <- function(surgesDT, conditional.threshold=.7, onlyFirstSurge=FALSE,yearMin=NA,yearMax=NA) {
   d <- surgesDT
+
   if (onlyFirstSurge) {
+    d <- d[freq.joint>0,]
     d[,first.surge:=(year==min(year)),by=key(d)]
     d<-d[first.surge==TRUE,]
   }
+
+  if ((!'prob.C1GivenC2' %in% colnames(d)) | (!'prob.C2GivenC1' %in% colnames(d))) {
+    d[,prob.C2GivenC1:= freq.joint / freq.c1 ]
+    d[,prob.C1GivenC2:= freq.joint / freq.c2 ]
+  } 
   d<-d[prob.C1GivenC2<=conditional.threshold & prob.C2GivenC1<=conditional.threshold,]
+
   if (!is.na(yearMin)) {
     d<-d[year>=yearMin,]
   }
@@ -1007,12 +1015,30 @@ buildCommonMatrix <-function(d, yearWindow=NA) {
 # relsDT = surges OR baseline 'surges', i.e. full dynamic_joint?
 prepareCmpBaseline <- function(relsDT, static_data, filterCondi=.6, yearMin=1990, yearMax=2020) {
 
+  print(paste('size relsDT:',nrow(relsDT)))
+  print(paste('size static:',nrow(static_data)))
+  # filter static data for cond prob
+  filtered_rels <- filterCondProb(static_data, filterCondi, FALSE)
+  filtered_rels <- filtered_rels[, c1,c2]
+  print(paste('after filtering on condi for static:',nrow(filtered_rels)))
+
+#  print(nrow(filtered_rels[c1=='D002800' & c2=='D008559',]))
+
   # filter range of years,  conditional proba and apply first year only
-  res <- filterCondProb(relsDT, filterCondi, TRUE, yearMin, yearMax)
+  res <- filterCondProb(relsDT, 1, TRUE, yearMin, yearMax)
+  print(paste('after filter FIRSTsurge + years: ', nrow(res)))
+#  print(nrow(res[c1=='D002800' & c2=='D008559',]))
+
+  # exclude rels which have been filtered out due to conditional
+  res <- merge(res, filtered_rels[,c1,c2])
+  print(paste('excluding condi from static: ', nrow(res)))
+#  print(nrow(res[c1=='D002800' & c2=='D008559',]))
 
   # add groups and filter the 4 groups
   res <- addRelationName(res, static_data)
-  selectRelationsGroups(res)
-
+  res <- selectRelationsGroups(res)
+  print(paste('after filter groups: ', nrow(res)))
+#  print(nrow(res[c1=='D002800' & c2=='D008559',]))
+  res
   
 }
