@@ -1,0 +1,401 @@
+c1	c2	term.c1	term.c2	group.c1	group.c2	year	discovery	gold.year
+D002352	D025801	Carrier Proteins	Ubiquitin	CHEM	CHEM	2001	maybe	
+D000068877	D046152	CGP 57148	Gastrointestinal Stromal Tumors	CHEM	DISO	2002	yes	2007
+D002118	D018047	calcium	Receptors, Purinergic P1	CHEM	CHEM	1993	no	
+D018844	D019927	Cyclin-Dependent Kinases	Cyclin E	CHEM	CHEM	1995	yes	1997
+D011401	D017930	Early Promoters, Genetic	Genes, Reporter	CHEM	GENE	1993	no	
+D000595	D020224	Amino Acid Sequence	Expressed Sequence Tags	GENE	CHEM	1998	no	
+D002117	D002120	calcitriol	Calcium Channel Agonists	CHEM	CHEM	1998	no	
+D053262	D053278	OX40 Receptors	tumor necrosis factor ligand superfamily member 4	CHEM	CHEM	1994	yes	1994
+D020275	D020277	Guillain-Barre Syndrome	Polyradiculoneuropathy, Chronic Inflammatory Demyelinating	DISO	DISO	1997	no	
+D000077402	D054328	pantoprazole	Proton Pump Inhibitors	CHEM	CHEM	1992	maybe	
+D000077203	D051297	Sodium-Glucose Transporter 2 Inhibitors	Sodium-Glucose Transporter 2	CHEM	CHEM	2005	no	
+D000067856	D019313	Poly(ADP-ribose) Polymerase Inhibitors	BRCA1 Protein	CHEM	CHEM	2015	yes	2015
+D001778	D018352	Blood Coagulation Disorders	Coronavirus Infections	DISO	DISO	2020	yes	2020
+D009838	D017931	Oligodeoxyribonucleotides	Oligonucleotide Primers	CHEM	CHEM	1993	maybe	
+D000077267	D011960	ZM 182780	Receptors, Estrogen, Type I	CHEM	CHEM	1998	no	
+D008525	D045167	medroxyprogesterone	Progestational Hormones, Synthetic	CHEM	CHEM	1995	maybe	
+D003094	D038982	alpha-Collagen	Integrin alpha2beta1	CHEM	CHEM	2002	no	
+D001483	D019444	Base Sequence	Vaccines, DNA	GENE	CHEM	1997	no	
+D019641	D019766	DNA, Archaeal	Genes, Archaeal	CHEM	GENE	1995	no	
+D004276	D017931	DNA, Satellite	Oligonucleotide Primers	CHEM	CHEM	1993	no	
+D048051	D048670	mitogen-activated protein kinase p38	MAP Kinase Kinase 4	CHEM	CHEM	1993	maybe	
+D009687	D058953	Nuclear Proteins	Neural Stem Cells	CHEM	ANAT	2010	no	
+D006162	D020030	Guanylate Cyclase	Nitric Oxide Donors	CHEM	CHEM	1997	maybe	
+D012117	D019279	Resins, Synthetic	Resin Cements	CHEM	CHEM	1990	no	
+D011794	D045744	quercetin	Cell Line, Tumor	CHEM	ANAT	2003	yes	2000
+D018352	D020521	Coronavirus Infections	Cerebrovascular accident	DISO	DISO	2020	no	
+D000666	D055666	amphotericin B	Lipopeptides	CHEM	CHEM	2001	maybe	
+D003776	D019279	Dental Porcelain	Resin Cements	CHEM	CHEM	2008	no	
+D000393	D018352	Air Pollutants	Coronavirus Infections	CHEM	DISO	2020	no	
+D011024	D035501	Pneumonia, Viral	Uncertainty	DISO	DISO	2020	no	
+D018121	D053683	Receptors, Cytokine	oncostatin M	CHEM	CHEM	1990	yes	1996
+D007668	D016162	Kidney	Genes, Wilms Tumor	ANAT	GENE	1992	no	
+D005091	D059645	Exons	Mutation Rate	CHEM	DISO	2011	no	
+D036341	D040301	Growth Factor	Vascular Endothelial Growth Factor Receptor-2	CHEM	CHEM	2000	no	
+D000077294	D030201	transforming growth factor-beta type II receptor	Activin Receptors, Type I	CHEM	CHEM	1993	no	
+D004791	D019284	Enzyme Inhibitors	Thapsigargin	CHEM	CHEM	1995	yes	1991
+D009419	D020439	Nerve Tissue Proteins	Growth Cones	CHEM	ANAT	1998	maybe	
+D050197	D061205	Atherosclerosis	Vascular calcification	DISO	DISO	2011	maybe	
+D001483	D041681	Base Sequence	NIH 3T3 Cells	GENE	ANAT	2003	maybe	
+D053613	D053616	Janus kinase 1	Janus kinase 3	CHEM	CHEM	1993	no	
+D000074502	D059648	Receptors, Kisspeptin-1	Metastin	CHEM	CHEM	1999	no	
+D001665	D017500	Binding Sites	Adenovirus E1A Proteins	CHEM	CHEM	1992	no	
+D000071538	D000071556	Compact bone	Cancellous Bone	ANAT	ANAT	2013	no	
+D020256	D057135	Choroidal Neovascularization	exudative macular degeneration	DISO	DISO	2012	yes	1996
+D000581	D043884	Amidohydrolases	Receptor, Cannabinoid, CB1	CHEM	CHEM	2003	maybe	
+D004791	D020033	Enzyme Inhibitors	Protein Isoforms	CHEM	CHEM	1998	no	
+D008168	D045169	Lung	Severe Acute Respiratory Syndrome	ANAT	DISO	2003	no	
+D011994	D017931	Recombinant Proteins	Oligonucleotide Primers	CHEM	CHEM	1993	no	
+D062445	D062465	Claudin-1	claudin 3	CHEM	CHEM	1997	no	
+D003350	D003900	Cortodoxone	desoxycorticosterone	CHEM	CHEM	2014	no	
+D016874	D019636	Neurofibrillary degeneration (morphologic abnormality)	Degenerative Diseases, Central Nervous System	DISO	DISO	1998	maybe	
+D001665	D057809	Binding Sites	HEK293 Cells	CHEM	ANAT	2010	yes	2008
+D001190	D013452	Arylsulfonates	Sulfine Compounds	CHEM	CHEM	1990	no	
+D000077191	D004791	Wortmannin	Enzyme Inhibitors	CHEM	CHEM	1995	yes	1994
+D020801	D020812	Ciliary Neurotrophic Factor Receptor	Neurotrophic Tyrosine Kinase Receptor Type 3	CHEM	CHEM	1991	yes	1994
+D000069557	D000069580	travoprost	bimatoprost	CHEM	CHEM	2000	yes	2002
+D000928	D017367	Antidepressive Agents	Serotonin Uptake Inhibitors	CHEM	CHEM	1991	maybe	
+D008187	D011868	lutetium	Radioisotopes	CHEM	CHEM	2009	no	
+D004195	D059329	Animal Disease Models	Cholinergic Neurons	DISO	ANAT	2011	no	
+D003092	D063646	Colitis	Carcinogenesis	DISO	DISO	2013	yes	2008
+D013252	D013254	Steroid 11-beta-Monooxygenase	Steroid 17-alpha-Hydroxylase	CHEM	CHEM	2011	no	
+D015658	D016273	HIV Infections	Occupational Exposure	DISO	DISO	1990	maybe	
+D012411	D015721	Rubella virus vaccine	Diphtheria-Tetanus-(whole-cell) Pertussis Vaccine	CHEM	CHEM	1992	maybe	
+D043886	D043887	Cholecystokinin A Receptor	Cholecystokinin B Receptor	CHEM	CHEM	1993	no	
+D012701	D017366	serotonin	Serotonin Agonists	CHEM	CHEM	1992	no	
+D001713	D018040	Biphenyl Compounds	Substance P Receptor	CHEM	CHEM	1991	yes	1991
+D034501	D035341	Single-Stranded Telomere-Binding Proteins	Telomeric Repeat Binding Protein 2	CHEM	CHEM	2000	yes	1991
+D000069283	D016403	IDEC-C2B8 Antibody	Diffuse Large B-Cell Lymphoma	CHEM	DISO	2008	yes	1994
+D004272	D028361	DNA, Mitochondrial	Mitochondrial Diseases	CHEM	DISO	2001	no	
+D056926	D056930	CLOCK Proteins	ARNTL Transcription Factors	CHEM	CHEM	1996	yes	2007
+D000072645	D045744	Cancer-Associated Fibroblasts	Cell Line, Tumor	ANAT	ANAT	2016	no	
+D019398	D024682	BRCA1 gene	BRCA2 Protein	GENE	CHEM	1995	no	
+D054415	D054421	Small Inducible Cytokine A19	Small Inducible Cytokine A21	CHEM	CHEM	1996	no	
+D008666	D011480	Metalloendopeptidases	Protease Inhibitors	CHEM	CHEM	1994	no	
+D040262	D040321	Endothelial Growth Factor Receptor	Vascular Endothelial Growth Factor Receptor-3	CHEM	CHEM	1992	no	
+D017931	D046911	Oligonucleotide Primers	Macromolecular Complexes	CHEM	CHEM	1993	no	
+D012661	D019380	Seminal plasma (substance)	Anti-HIV Agents	ANAT	CHEM	1997	no	
+D000071230	D051638	Transcriptional Regulator ERG	Ether-A-Go-Go Potassium Channels	CHEM	CHEM	1993	no	
+D007783	D019440	Lactones	Weight-Loss Agents	CHEM	CHEM	1998	no	
+D001017	D020752	Aortic coarctation	Neurocutaneous Syndromes	DISO	DISO	2015	no	
+D006886	D061466	hydroxychloroquine	lopinavir	CHEM	CHEM	2020	no	
+D009842	D017124	Oligopeptides	Conserved Sequence	CHEM	GENE	1993	no	
+D011655	D018352	Pulmonary Embolism	Coronavirus Infections	DISO	DISO	2020	no	
+D008068	D010188	Lipomatosis	Exocrine pancreatic insufficiency	DISO	DISO	2009	no	
+D011218	D017204	Prader-Willi Syndrome	Angelman Syndrome	DISO	DISO	1991	maybe	
+D001665	D017931	Binding Sites	Oligonucleotide Primers	CHEM	CHEM	1993	no	
+D017667	D051275	Adipocytes	Glucose Transporter Type 4	ANAT	CHEM	1991	yes	1990
+D017758	D045169	Infectious Disease Transmission, Patient-to-Professional	Severe Acute Respiratory Syndrome	DISO	DISO	2003	no	
+D018013	D044088	Neuropeptide Receptor	galanin receptor	CHEM	CHEM	1996	yes	1994
+D005272	D057925	Structure of neck of femur	Femoracetabular Impingement	ANAT	DISO	2011	no	
+D014807	D018352	vitamin D	Coronavirus Infections	CHEM	DISO	2020	yes	2020
+D004268	D017931	DNA Helix Destabilizing Proteins	Oligonucleotide Primers	CHEM	CHEM	1993	no	
+D017124	D017931	Conserved Sequence	Oligonucleotide Primers	GENE	CHEM	1993	no	
+D018811	D018812	Maternal Exposure	Paternal Exposure	DISO	DISO	1992	no	
+D000074322	D000911	Monoclonal antibodies, antineoplastic	Monoclonal Antibodies	CHEM	CHEM	2016	no	
+D005884	D005889	Gingival Hemorrhage	Gingival Recession	DISO	DISO	1999	maybe	
+D011993	D017931	Recombinant Fusion Proteins	Oligonucleotide Primers	CHEM	CHEM	1993	no	
+D026161	D064326	MADS Domain Proteins	myocyte enhancer factor 2C	CHEM	CHEM	1991	yes	1998
+D010035	D018424	Suppurative otitis media	Middle Ear Cholesteatoma	DISO	DISO	1994	no	
+D054400	D054421	Receptors, CCR7	Small Inducible Cytokine A21	CHEM	CHEM	1996	no	
+D020691	D020696	rab GTP-Binding Proteins	rab5A GTP-Binding Protein	CHEM	CHEM	2000	yes	2001
+D020030	D026422	Nitric Oxide Donors	S-Nitrosoglutathione	CHEM	CHEM	1996	no	
+D012216	D018352	Rheumatism	Coronavirus Infections	DISO	DISO	2020	no	
+D001477	D007008	Bartter Disease	Hypokalemia	DISO	DISO	1994	maybe	
+D002478	D016475	Cultured Cells	3T3 Cells	ANAT	ANAT	1991	no	
+D008458	D017778	Measles Vaccine	Vaccines, Combined	CHEM	CHEM	1993	no	
+D000073883	D054428	CX3C Chemokine Receptor 1	Fractalkine	CHEM	CHEM	1996	maybe	
+D051176	D051186	beta catenin	Armadillo Domain Proteins	CHEM	CHEM	1990	yes	1995
+D001786	D018352	Blood Glucose	Coronavirus Infections	CHEM	DISO	2020	yes	2020
+D052247	D052250	Nitric Oxide Synthase Type II	Nitric Oxide Synthase Type III	CHEM	CHEM	1995	no	
+D020542	D020547	Third ventricle structure	Lateral ventricle structure	ANAT	ANAT	1996	no	
+D000072283	D008168	A549 Cells	Lung	ANAT	ANAT	2016	yes	2008
+D005804	D017931	Genes, Lethal	Oligonucleotide Primers	GENE	CHEM	1993	no	
+D013601	D019138	T-Lymphocyte	Enhancing Antibodies	ANAT	CHEM	1995	no	
+D014148	D016063	tranexamic acid	Intraoperative Hemorrhage	CHEM	DISO	2015	yes	2005
+D000730	D004791	Androstadienes	Enzyme Inhibitors	CHEM	CHEM	1995	maybe	
+D039904	D055748	Pluripotent Stem Cells	SOX2 Transcription Factor	ANAT	CHEM	2007	yes	2009
+D009413	D036421	A Fibers	C Fibers	ANAT	ANAT	2000	no	
+D000077153	D000077155	Progranulins	Granulin 4	CHEM	CHEM	1991	no	
+D014407	D059865	Tumor Cells, Cultured	Endoplasmic Reticulum Stress	ANAT	DISO	2012	yes	2011
+D016178	D016898	Granulocyte-Macrophage Colony-Stimulating Factor	Interferon-alpha	CHEM	CHEM	1991	maybe	
+D000069465	D000493	2-(3-cyano-4-isobutoxyphenyl)-4-methyl-5-thiazolecarboxylic acid	allopurinol	CHEM	CHEM	2009	maybe	
+D017354	D028361	Point Mutation	Mitochondrial Diseases	DISO	DISO	2001	no	
+D011498	D052216	Protein Precursors	Glucagon-Like Peptide 1	CHEM	CHEM	1993	maybe	
+D048371	D048669	MAP Kinase Kinase 3	MAP Kinase Kinase 6b	CHEM	CHEM	1996	no	
+D001920	D042783	Bradykinin	Endothelial Cells	CHEM	ANAT	2003	no	
+D000072283	D004847	A549 Cells	Epithelial Cells	ANAT	ANAT	2016	no	
+D001859	D033162	Bone neoplasms	Incidental Findings	DISO	DISO	2003	no	
+D000072283	D057809	A549 Cells	HEK293 Cells	ANAT	ANAT	2016	no	
+D016207	D023201	cytokine	CD40 Ligand	CHEM	CHEM	1993	yes	1994
+D000074018	D016328	B-Cell CLL-Lymphoma 10 Protein	NF-kappa B	CHEM	CHEM	1999	no	
+D018727	D053201	Muscarinic Antagonists	Overactive Detrusor	CHEM	DISO	2006	maybe	
+D000071676	D000075746	Zinc Finger Protein GLI1	Zinc Finger Protein Gli2	CHEM	CHEM	1995	no	
+D002478	D017931	Cultured Cells	Oligonucleotide Primers	ANAT	CHEM	1993	no	
+D000071616	D053554	CDX2 Transcription Factor	cytokeratin 20	CHEM	CHEM	2016	maybe	
+D019808	D044139	losartan	Angiotensin II Receptor, Type 2	CHEM	CHEM	1996	maybe	
+D006463	D022621	Hemolytic-Uremic Syndrome	Shiga Toxin	DISO	CHEM	2017	yes	2001
+D005347	D050505	Fibroblasts	Mutant Proteins	ANAT	CHEM	2006	no	
+D014688	D018027	Venoms	Glucagon Receptor	CHEM	CHEM	1998	no	
+D013631	D064286	Tangier Disease	ATP Binding Cassette Transporter 1	DISO	CHEM	1997	yes	1999
+D016328	D051547	NF-kappa B	Heme Oxygenase-1	CHEM	CHEM	2000	yes	1994
+D018528	D027322	ATP-Binding Cassette Transporters	Glutamate Transporter	CHEM	CHEM	1993	maybe	
+D009865	D017931	Oocytes	Oligonucleotide Primers	ANAT	CHEM	1993	yes	1996
+D011956	D045744	Receptors, Cell Surface	Cell Line, Tumor	CHEM	ANAT	2003	no	
+D002631	D054413	Chemotactic Factors, Eosinophil	Eotaxin	CHEM	CHEM	1994	maybe	
+D018995	D024701	Myosin Heavy Chains	Myosin-V p190	CHEM	CHEM	1992	yes	1992
+D000962	D011024	Antimalarials	Pneumonia, Viral	CHEM	DISO	2020	maybe	
+D000071681	D056657	uteroferrin	cathepsin K	CHEM	CHEM	2002	no	
+D000081082	D002867	Substance with phosphoinositide 3 kinase inhibitor mechanism of action	Chromones	CHEM	CHEM	1996	maybe	
+D013683	D030301	Hereditary hemorrhagic telangiectasia	Activin Receptors, Type II	DISO	CHEM	2002	yes	1997
+D017868	D047908	Cyclic AMP-Dependent Protein Kinases	Intracellular Signaling Peptides and Proteins	CHEM	CHEM	1994	maybe	
+D004268	D041321	DNA Helix Destabilizing Proteins	Chromosomes, Human, X	CHEM	ANAT	2002	no	
+D000070918	D002478	Synoviocytes	Cultured Cells	ANAT	ANAT	2016	maybe	
+D018797	D019941	Cell Cycle Proteins	Cyclin-Dependent Kinase Inhibitor p16	CHEM	CHEM	1993	yes	1994
+D002540	D018047	Cerebral cortex	Receptors, Purinergic P1	ANAT	CHEM	1993	no	
+D000073883	D020523	CX3C Chemokine Receptor 1	CX3C Chemokines	CHEM	CHEM	1996	no	
+D015212	D018352	Inflammatory Bowel Diseases	Coronavirus Infections	DISO	DISO	2020	no	
+D011868	D011883	Radioisotopes	radium	CHEM	CHEM	2011	no	
+D053454	D059865	Caspase 12	Endoplasmic Reticulum Stress	CHEM	DISO	2010	yes	2002
+D051036	D051037	Large-Conductance Calcium-Activated Potassium Channels	Large-Conductance Calcium-Activated Potassium Channel alpha Subunits	CHEM	CHEM	1993	no	
+D020325	D020326	Migraine with Aura	Common Migraine	DISO	DISO	1997	maybe	
+D000071243	D008831	Zika Virus Infection	Microcephaly	DISO	DISO	2014	yes	2017
+D004791	D015102	Enzyme Inhibitors	3,4-Dihydroxyphenylacetic Acid	CHEM	CHEM	1995	maybe	
+D013348	D018376	Structure of subclavian artery	Cardiovascular Abnormalities	ANAT	DISO	2010	no	
+D017931	D018076	Oligonucleotide Primers	DNA, Complementary	CHEM	CHEM	1993	no	
+D020664	D051380	Son of Sevenless Proteins	GRB2 Adaptor Protein	CHEM	CHEM	1991	yes	1993
+D051195	D051197	Toll-Like Receptor 2	toll-like receptor 4	CHEM	CHEM	1997	no	
+D000072417	D050505	Protein Domain	Mutant Proteins	GENE	CHEM	2016	no	
+D060890	D061026	Antigens, CD274	Programmed Cell Death Protein 1	CHEM	CHEM	2000	maybe	
+D000074624	D000074663	NADPH Oxidase 1	NADPH Oxidase 4	CHEM	CHEM	1999	no	
+D007685	D051399	Structure of collecting tubule	Aquaporin 2	ANAT	CHEM	1993	no	
+D033921	D048868	Vesicular Transport Proteins	Adaptor Proteins, Signal Transducing	CHEM	CHEM	1992	no	
+D019258	D019438	saquinavir mesylate	ritonavir	CHEM	CHEM	1994	no	
+D000072283	D002945	A549 Cells	cisplatin	ANAT	CHEM	2016	yes	2014
+D051939	D051942	Phytochrome B	Phytochrome A	CHEM	CHEM	1993	no	
+D057167	D062465	Claudins	claudin 3	CHEM	CHEM	1997	no	
+D005070	D005119	Evans blue	Extravasation of Contrast Media	CHEM	DISO	1991	no	
+D004268	D020224	DNA Helix Destabilizing Proteins	Expressed Sequence Tags	CHEM	CHEM	1998	no	
+D000074322	D061067	Monoclonal antibodies, antineoplastic	Antibodies, Monoclonal, Humanized	CHEM	CHEM	2016	no	
+D053181	D053200	caspase-8	Fas-Associated Death Domain Protein	CHEM	CHEM	1999	yes	2003
+D017461	D020098	Receptors, Atrial Natriuretic Factor	Natriuretic Peptide, C-Type	CHEM	CHEM	1990	yes	1992
+D002630	D015846	Chemotactic Factors	Monokines	CHEM	CHEM	1996	yes	1999
+D005483	D009525	Flushing	Lithium Nicotinate	DISO	CHEM	2005	no	
+D018122	D060908	CD80 Antigens	cytotoxic T-lymphocyte antigen 4	CHEM	CHEM	1991	yes	2007
+D019427	D019428	HIV Integrase	HIV Integrase Inhibitors	CHEM	CHEM	1995	no	
+D011401	D018076	Early Promoters, Genetic	DNA, Complementary	CHEM	CHEM	1993	no	
+D000998	D045169	Antiviral Agents	Severe Acute Respiratory Syndrome	CHEM	DISO	2003	no	
+D005796	D017931	Cistron	Oligonucleotide Primers	GENE	CHEM	1993	no	
+D000077336	D000077612	caspofungin	LY 303366	CHEM	CHEM	1996	maybe	
+D011061	D039221	Poly A	mRNA Cleavage and Polyadenylation Factors	CHEM	CHEM	1994	maybe	
+D015232	D017737	dinoprostone	Macrophages, Peritoneal	CHEM	ANAT	1993	no	
+D002352	D018076	Carrier Proteins	DNA, Complementary	CHEM	CHEM	1993	no	
+D018813	D051096	Multiple Endocrine Neoplasia Type 2a	Proto-Oncogene Proteins c-ret	DISO	CHEM	1993	yes	1995
+D051785	D051899	Smad Proteins	SMAD2 protein	CHEM	CHEM	1995	no	
+D018384	D065626	Oxidative Stress	Non-alcoholic Fatty Liver Disease	DISO	DISO	2010	no	
+D000068581	D000069058	IC351	vardenafil	CHEM	CHEM	2000	maybe	
+D016160	D019253	Retinoblastoma Nuclear Phosphoprotein p105-Rb	Proto-Oncogene Proteins c-bcl-2	CHEM	CHEM	1995	no	
+D000544	D020932	Alzheimer's Disease	nerve growth factor	DISO	CHEM	1999	maybe	
+D000072283	D002460	A549 Cells	Cultured Cell Line	ANAT	ANAT	2016	maybe	
+D000070642	D009474	Traumatic Brain Injury	Neurons	DISO	ANAT	2016	no	
+D003428	D045169	Cross Infection	Severe Acute Respiratory Syndrome	DISO	DISO	2003	no	
+D000077144	D065731	clopidogrel	Cytochrome P-450 CYP2C19	CHEM	CHEM	2008	yes	2009
+D000072417	D015394	Protein Domain	Molecular Structure	GENE	GENE	2016	no	
+D000069036	D007336	HOE 901	insulin isophane	CHEM	CHEM	1998	yes	2000
+D003763	D017220	Dental Leakage	Dentin-Bonding Agents	DISO	CHEM	1990	no	
+D016466	D017931	Chinese Hamster Ovary Cell	Oligonucleotide Primers	ANAT	CHEM	1993	no	
+D012333	D016391	RNA, Messenger	Genes, src	CHEM	GENE	1991	no	
+D000086663	D064370	COVID-19 Vaccines	Spike Protein S2, Coronavirus	CHEM	CHEM	2020	maybe	
+D051880	D053829	Receptors, Notch	secretase	CHEM	CHEM	2000	maybe	
+D024681	D051037	Calcium-Activated Potassium Channel	Large-Conductance Calcium-Activated Potassium Channel alpha Subunits	CHEM	CHEM	1993	no	
+D000069470	D018687	venlafaxine	Antidepressive Agents, Second-Generation	CHEM	CHEM	1992	yes	1996
+D000071243	D001921	Zika Virus Infection	Brain	DISO	ANAT	2016	maybe	
+D000074081	D027425	MutS Homolog 3 Protein	Multidrug Resistance-Associated Proteins	CHEM	CHEM	1990	no	
+D000068900	D054873	sitagliptin	Dipeptidyl-Peptidase IV Inhibitors	CHEM	CHEM	2004	yes	2007
+D015846	D018925	Monokines	chemokine	CHEM	CHEM	1993	maybe	
+D008562	D016716	Membrane Glycoproteins	PC12 Cells	CHEM	ANAT	1991	maybe	
+D011183	D019904	Postoperative Complications	Polymethyl Methacrylate	DISO	CHEM	1997	yes	2002
+D018719	D063646	erbB-2 Receptor	Carcinogenesis	CHEM	DISO	2013	no	
+D007783	D016861	Lactones	Cyclooxygenase Inhibitors	CHEM	CHEM	1999	yes	1996
+D011724	D019380	Pyridazines	Anti-HIV Agents	CHEM	CHEM	2002	maybe	
+D010485	D012387	Periapical Periodontitis	Root Canal Filling Materials	DISO	CHEM	2001	maybe	
+D012097	D018384	Repressor Proteins	Oxidative Stress	CHEM	DISO	1995	yes	1994
+D007668	D059289	Kidney	Arterial Stiffness	ANAT	DISO	2012	maybe	
+D018122	D018796	CD80 Antigens	Radioimmunoconjugates	CHEM	CHEM	1991	maybe	
+D003470	D016475	Culture Media	3T3 Cells	CHEM	ANAT	1991	no	
+D020521	D035002	Cerebrovascular accident	Lower Extremity	DISO	ANAT	2003	no	
+D000072657	D000077486	ST segment elevation myocardial infarction	AZD 6140	DISO	CHEM	2016	yes	2007
+D044402	D044405	Receptor, Serotonin, 5-HT2A	Receptor, Serotonin, 5-HT2C	CHEM	CHEM	1994	no	
+D018946	D019402	RANTES	Macrophage Inflammatory Proteins	CHEM	CHEM	1991	yes	1992
+D005977	D044925	Glutarates	Oxidoreductases Acting on CH-CH Group Donors	CHEM	CHEM	1998	no	
+D004268	D019556	DNA Helix Destabilizing Proteins	COS Cells	CHEM	ANAT	1996	no	
+D020830	D045744	rac1 GTP-Binding Protein	Cell Line, Tumor	CHEM	ANAT	2003	maybe	
+D009419	D018598	Nerve Tissue Proteins	Minisatellite Repeats	CHEM	CHEM	1994	no	
+D020778	D042783	Matrix Metalloproteinase 2	Endothelial Cells	CHEM	ANAT	2003	yes	2001
+D016166	D018482	Free Radical Scavengers	Tibialis anterior muscle structure	CHEM	ANAT	1995	no	
+D053552	D053554	keratin 7	cytokeratin 20	CHEM	CHEM	1996	yes	2000
+D000697	D001289	Central Nervous System Stimulants	Attention Deficit Disorder	CHEM	DISO	1995	no	
+D053244	D053246	Tumor necrosis factor receptor 11b	Receptor Activator of Nuclear Factor-kappa B	CHEM	CHEM	1996	yes	2003
+D012878	D015704	Malignant neoplasm of skin	CD4 Antigens	DISO	CHEM	1990	maybe	
+D000072283	D017382	A549 Cells	Reactive Oxygen Species	ANAT	CHEM	2016	maybe	
+D001523	D018352	Behavior Disorders	Coronavirus Infections	DISO	DISO	2020	no	
+D008550	D044123	melatonin	Receptor, Melatonin, MT2	CHEM	CHEM	2006	no	
+D015723	D017931	Gene Library	Oligonucleotide Primers	GENE	CHEM	1993	no	
+D048029	D053594	TNF receptor-associated factor 6	Myeloid Differentiation Factor 88	CHEM	CHEM	1995	yes	2000
+D005343	D035002	Fibrinolytic Agents	Lower Extremity	CHEM	ANAT	2002	no	
+D005796	D007438	Cistron	Introns	GENE	CHEM	1998	no	
+D011401	D049409	Early Promoters, Genetic	Luciferases, Firefly	CHEM	CHEM	2004	no	
+D000690	D034702	Amyotrophic Lateral Sclerosis	RNA-Binding Protein FUS	DISO	CHEM	2009	maybe	
+D018352	D054556	Coronavirus Infections	Venous Thromboembolism	DISO	DISO	2020	no	
+D012415	D050882	Rubinstein-Taybi Syndrome	CREB-binding protein	DISO	CHEM	1993	yes	2005
+D000072417	D010940	Protein Domain	Plant Proteins	GENE	CHEM	2016	no	
+D037701	D037721	Pulmonary Surfactant-Associated Protein B	Pulmonary Surfactant-Associated Protein C	CHEM	CHEM	2000	no	
+D001729	D016481	bismuth	Helicobacter Infections	CHEM	DISO	1990	yes	1997
+D015102	D018765	3,4-Dihydroxyphenylacetic Acid	Dopamine Uptake Inhibitors	CHEM	CHEM	1994	maybe	
+D027362	D029362	Organic Anion Transport Protein 1	Organic Anion Transporters, Sodium-Independent	CHEM	CHEM	1997	no	
+D042863	D056906	Cyclin-Dependent Kinase 9	Cyclin T1	CHEM	CHEM	1997	maybe	
+D000067996	D007249	RAW 264.7 Cells	Inflammation	ANAT	DISO	2015	yes	2014
+D018267	D018277	Acinar Cell Carcinoma	Mucoepidermoid Carcinoma	DISO	DISO	1994	no	
+D000595	D016679	Amino Acid Sequence	Viral Genome	GENE	GENE	1991	no	
+D001523	D011024	Behavior Disorders	Pneumonia, Viral	DISO	DISO	2020	no	
+D010616	D016778	Phenanthrenes	Malaria, Falciparum	CHEM	DISO	1991	maybe	
+D014326	D050483	Tropanes	dopamine transporter	CHEM	CHEM	1995	yes	1997
+D015207	D020370	Osteoarthritis of hip	Osteoarthritis, Knee	DISO	DISO	1996	no	
+D000241	D043705	adenosine	Adenosine A2A Receptor	CHEM	CHEM	1997	no	
+D003924	D011024	Diabetes Mellitus, Non-Insulin-Dependent	Pneumonia, Viral	DISO	DISO	2020	no	
+D053553	D053555	keratin 6B protein	Keratin-5	CHEM	CHEM	2004	no	
+D010744	D017931	Phosphoric Monoester Hydrolases	Oligonucleotide Primers	CHEM	CHEM	1994	maybe	
+D000067696	D020754	Ataxin-1	Ataxia, Spinocerebellar	CHEM	DISO	1998	yes	1995
+D051028	D061986	Bax protein	MCF-7 Cells	CHEM	ANAT	2012	yes	1996
+D011980	D018931	Receptors, Progesterone	Antineoplastic Agents, Hormonal	CHEM	CHEM	1995	maybe	
+D033962	D033965	Adaptor Protein Complex 2	Adaptor Protein Complex alpha Subunits	CHEM	CHEM	1990	no	
+D015728	D019713	Receptors, HIV	Chemokine (C-C Motif) Receptor 5	CHEM	CHEM	1994	yes	1999
+D054398	D054414	Receptors, CCR4	Chemokine CCL17	CHEM	CHEM	1996	maybe	
+D001665	D019556	Binding Sites	COS Cells	CHEM	ANAT	1996	no	
+D014442	D058965	Phenoloxidase A	MART-1 Antigen	CHEM	CHEM	1996	no	
+D002108	D010195	Ceruletide	Pancreatitis, Acute	CHEM	DISO	1992	maybe	
+D000077211	D059266	zoledronic acid	Bisphosphonate-associated osteonecrosis	CHEM	DISO	2011	yes	2005
+D011956	D017931	Receptors, Cell Surface	Oligonucleotide Primers	CHEM	CHEM	1993	no	
+D004791	D016760	Enzyme Inhibitors	Proto-Oncogene Proteins c-fos	CHEM	CHEM	1995	yes	1995
+D016147	D025521	Tumor Suppressor Genes	Tumor Suppressor Proteins	GENE	CHEM	1993	no	
+D035683	D063646	MicroRNAs	Carcinogenesis	CHEM	DISO	2013	yes	2007
+D006962	D057966	Hyperparathyroidism, Secondary	Calcimimetic Agents	DISO	CHEM	2009	maybe	
+D011256	D050177	Pregnancy Outcome	Overweight	DISO	DISO	2006	maybe	
+D000911	D018858	Monoclonal Antibodies	Structure of germinal center of lymph node	CHEM	ANAT	1996	maybe	
+D017364	D020780	collagenase	Matrix Metalloproteinase 9	CHEM	CHEM	1990	yes	1995
+D000069594	D018122	BMS 188667	CD80 Antigens	CHEM	CHEM	1991	no	
+D000067996	D010936	RAW 264.7 Cells	Plant Extracts	ANAT	CHEM	2015	maybe	
+D012871	D018352	Dermatologic disorders	Coronavirus Infections	DISO	DISO	2020	no	
+D000595	D057809	Amino Acid Sequence	HEK293 Cells	GENE	ANAT	2010	no	
+D003598	D045744	Cytoskeletal Proteins	Cell Line, Tumor	CHEM	ANAT	2003	no	
+D000595	D016572	Amino Acid Sequence	cyclosporine	GENE	CHEM	1991	maybe	
+D051899	D051901	SMAD2 protein	Smad4 Protein	CHEM	CHEM	1995	no	
+D000962	D018352	Antimalarials	Coronavirus Infections	CHEM	DISO	2020	yes	2020
+D000072230	D008103	Sustained Virologic Response	Liver Cirrhosis	DISO	DISO	2016	yes	2012
+D005154	D019569	Facial nerve structure	Hemifacial Spasm	ANAT	DISO	1996	no	
+D000079225	D011024	Emotional Stress	Pneumonia, Viral	DISO	DISO	2020	no	
+D010750	D045744	Phosphoproteins	Cell Line, Tumor	CHEM	ANAT	2003	maybe	
+D001031	D018786	Apatites	Bone Substitutes	CHEM	CHEM	2002	yes	1998
+D010619	D020459	Phenazines	Ribosomal RNA Genes	CHEM	GENE	2004	no	
+D004697	D016459	Bacterial Endocarditis	Prosthesis-Related Infection	DISO	DISO	1993	no	
+D044282	D058825	Receptor, Serotonin, 5-HT1A	Serotonin 5-HT1 Receptor Agonists	CHEM	CHEM	2001	no	
+D000959	D017311	Antihypertensive Agents	amlodipine	CHEM	CHEM	2009	yes	2011
+D022362	D035922	Hepatitis A Vaccines	hepatitis A virus antibodies	CHEM	CHEM	1990	no	
+D003280	D017135	Contraceptives, Oral, Synthetic	desogestrel	CHEM	CHEM	1993	maybe	
+D000076228	D064007	MRE11 Homologue Protein	Ataxia Telangiectasia Mutated Proteins	CHEM	CHEM	2005	yes	1999
+D029701	D066329	Saccharomyces cerevisiae Proteins	Protein Aggregates	CHEM	CHEM	2014	maybe	
+D054367	D054371	CXCR3 Receptors	Chemokine CXCL11	CHEM	CHEM	1999	maybe	
+D011941	D018674	Adrenergic Receptor	Adrenergic Antagonists	CHEM	CHEM	2018	no	
+D011024	D013313	Pneumonia, Viral	Post-Traumatic Stress Disorder	DISO	DISO	2020	no	
+D005840	D020459	gentian violet	Ribosomal RNA Genes	CHEM	GENE	2004	no	
+D001426	D017931	Bacterial Proteins	Oligonucleotide Primers	CHEM	CHEM	1993	no	
+D020778	D020780	Matrix Metalloproteinase 2	Matrix Metalloproteinase 9	CHEM	CHEM	1990	no	
+D000070642	D020127	Traumatic Brain Injury	Recovery of Function	DISO	DISO	2016	no	
+D018352	D018501	Coronavirus Infections	Antirheumatic Agents	DISO	CHEM	2020	no	
+D016184	D019009	Receptors, Colony-Stimulating Factor	Calcimimetic Agents	CHEM	CHEM	1991	no	
+D051785	D051898	Smad Proteins	Smad1 Protein	CHEM	CHEM	1995	no	
+D035381	D051548	TATA-Binding Protein Associated Factors	histone acetyltransferase	CHEM	CHEM	1991	maybe	
+D001483	D016475	Base Sequence	3T3 Cells	GENE	ANAT	1991	no	
+D018932	D019402	Monocyte Chemoattractant Protein-1	Macrophage Inflammatory Proteins	CHEM	CHEM	1992	no	
+D011083	D011721	Polycyclic Compounds	Pyrenes	CHEM	CHEM	1992	maybe	
+D018450	D045744	Disease Exacerbation	Cell Line, Tumor	DISO	ANAT	2003	no	
+D003062	D019556	Codon (nucleotide sequence)	COS Cells	GENE	ANAT	1997	maybe	
+D013702	D017397	Temporal Lobe	Structure of superior frontal gyrus	ANAT	ANAT	1993	no	
+D019438	D019469	ritonavir	MK-639	CHEM	CHEM	1994	yes	1997
+D000755	D020521	Anemia, Sickle Cell	Cerebrovascular accident	DISO	DISO	1999	yes	1998
+D051544	D065731	cytochrome P450 3A	Cytochrome P-450 CYP2C19	CHEM	CHEM	1995	yes	2002
+D051176	D051178	beta catenin	alpha Catenin	CHEM	CHEM	1991	no	
+D000804	D007093	angiotensin II	Imidazoles	CHEM	CHEM	1991	yes	1991
+D057852	D058442	Posterior Capsule of the Lens	After-cataract	ANAT	DISO	2009	maybe	
+D002908	D012220	Chronic disease	Rhinitis	DISO	DISO	2015	no	
+D011506	D053222	Proteins	Tumor Necrosis Factor Ligand Superfamily Member 6	CHEM	CHEM	1997	no	
+D002316	D006835	Cardiotonic Agents	Hydrazones	CHEM	CHEM	2003	no	
+D008565	D018076	Integral Membrane Proteins	DNA, Complementary	CHEM	CHEM	1993	no	
+D011956	D017395	Receptors, Cell Surface	Plasminogen Activator Inhibitor 1	CHEM	CHEM	1992	maybe	
+D014157	D017931	TRANSCRIPTION FACTOR	Oligonucleotide Primers	CHEM	CHEM	1993	no	
+D004791	D018129	Enzyme Inhibitors	Phosphatidylinositol Phosphates	CHEM	CHEM	1995	maybe	
+D008099	D027381	Liver	Liver-Specific Organic Anion Transporter 1	ANAT	CHEM	2002	yes	1999
+D000077261	D008790	carvedilol	Seloken	CHEM	CHEM	1998	no	
+D008222	D018482	Lymphokines	Tibialis anterior muscle structure	CHEM	ANAT	1995	no	
+D007073	D016269	Immunoglobulin E	Milk Allergy	CHEM	DISO	1990	yes	2004
+D002055	D011024	Burnout, Professional	Pneumonia, Viral	DISO	DISO	2020	no	
+D013779	D019001	Tetrodotoxin	Nitric Oxide Synthase	CHEM	CHEM	1993	maybe	
+D042863	D042925	Cyclin-Dependent Kinase 9	Positive Transcriptional Elongation Factor B	CHEM	CHEM	1995	yes	2001
+D015897	D047228	Comorbidity	Angiotensin II Type 1 Receptor Blockers	DISO	CHEM	2004	yes	2006
+D018160	D045744	Receptors, Cytoplasmic	Cell Line, Tumor	CHEM	ANAT	2003	maybe	
+D023903	D023921	Coronary Restenosis	Coronary Stenosis	DISO	DISO	1997	no	
+D015603	D016475	keratinocyte	3T3 Cells	ANAT	ANAT	1991	yes	1987
+D005810	D017931	Gene Clusters	Oligonucleotide Primers	GENE	CHEM	1993	no	
+D010957	D016366	Episomes	Unassigned Reading Frames	CHEM	GENE	1990	no	
+D011401	D017931	Early Promoters, Genetic	Oligonucleotide Primers	CHEM	CHEM	1993	no	
+D007438	D017931	Introns	Oligonucleotide Primers	CHEM	CHEM	1993	maybe	
+D018719	D045744	erbB-2 Receptor	Cell Line, Tumor	CHEM	ANAT	2003	yes	2001
+D050171	D050177	Dyslipidemias	Overweight	DISO	DISO	1999	yes	2005
+D017384	D017931	Sequence Deletion	Oligonucleotide Primers	DISO	CHEM	1993	no	
+D000079225	D018352	Emotional Stress	Coronavirus Infections	DISO	DISO	2020	no	
+D018079	D018080	GABA Receptor	GABA-B Receptor	CHEM	CHEM	1990	no	
+D001665	D020033	Binding Sites	Protein Isoforms	CHEM	CHEM	1998	no	
+D050718	D054179	C1 esterase inhibitor	Angioedemas, Hereditary	CHEM	DISO	2006	yes	2000
+D000249	D000409	Adenosine 2'-Phosphate	alanine	CHEM	CHEM	2018	no	
+D050683	D050825	Vesicle-Associated Membrane Proteins	Synaptosomal-Associated Protein 25	CHEM	CHEM	1992	maybe	
+D053674	D055758	Aggrecans	SOX9 Transcription Factor	CHEM	CHEM	2002	yes	2000
+D053300	D053303	Tumor Necrosis Factor Ligand Superfamily Member 13	Transmembrane Activator and CAML Interactor Protein	CHEM	CHEM	1998	maybe	
+D006728	D018450	Hormones	Disease Exacerbation	CHEM	DISO	1995	no	
+D036361	D054440	Polypeptide Hormones	growth hormone secretagogue receptor	CHEM	CHEM	1998	yes	2000
+D054414	D054422	Chemokine CCL17	Chemokine CCL22	CHEM	CHEM	1996	no	
+D000071116	D011348	ADAMTS5 Protein	Procollagen N-Endopeptidase	CHEM	CHEM	1999	no	
+D000071182	D008247	Phagophores	Lysosomes	ANAT	ANAT	2016	maybe	
+D003863	D011024	Mental Depression	Pneumonia, Viral	DISO	DISO	2020	no	
+D046729	D046730	Colitis, Collagenous	Colitis, Lymphocytic	DISO	DISO	2003	yes	1989
+D000068556	D020529	interferon beta-1a	Multiple Sclerosis, Acute Relapsing	CHEM	DISO	1998	yes	1996
+D012168	D014975	Retinal Pigments	Lutein F	CHEM	CHEM	2008	yes	2001
+D022242	D022401	Pneumovax	Bivalent Meningococcal Vaccine	CHEM	CHEM	1997	no	
+D018686	D020250	Anesthetics, Intravenous	Postoperative Nausea	CHEM	DISO	1991	yes	1992
+D000071116	D000071121	ADAMTS5 Protein	ADAMTS4 Protein	CHEM	CHEM	1999	no	
+D009570	D014105	Nitriles	Tosyl Compounds	CHEM	CHEM	1994	maybe	
+D004247	D050505	DNA	Mutant Proteins	CHEM	CHEM	2006	no	
+D025521	D057809	Tumor Suppressor Proteins	HEK293 Cells	CHEM	ANAT	2010	maybe	
+D007676	D018352	Kidney Failure, Chronic	Coronavirus Infections	DISO	DISO	2020	yes	2020
+D000070956	D051719	MutL Proteins	MutS DNA Mismatch-Binding Protein	CHEM	CHEM	1991	yes	2001
+D013274	D064593	Malignant neoplasm of stomach	Xenograft type of graft	DISO	CHEM	2013	yes	2013
+D013954	D018263	thyroglobulin	Follicular thyroid carcinoma	CHEM	DISO	1998	yes	2002
+D017258	D045167	medroxyprogesterone acetate	Progestational Hormones, Synthetic	CHEM	CHEM	1994	maybe	
+D010100	D019446	oxygen	Endotoxemia	CHEM	DISO	1996	maybe	
+D013927	D018352	Thrombosis	Coronavirus Infections	DISO	DISO	2020	maybe	
+D045744	D051057	Cell Line, Tumor	Proto-Oncogene Proteins c-akt	ANAT	CHEM	2003	maybe	
+D043169	D043170	Endostatins	Collagen Type XVIII, alpha1 Subunit	CHEM	CHEM	1995	yes	2001
+D000077144	D054058	clopidogrel	Acute Coronary Syndrome	CHEM	DISO	2007	yes	2009
+D013601	D017077	T-Lymphocyte	Culture Media, Conditioned	ANAT	CHEM	1992	no	
+D017930	D025801	Genes, Reporter	Ubiquitin	GENE	CHEM	2001	no	
+D003863	D018352	Mental Depression	Coronavirus Infections	DISO	DISO	2020	no	
+D053244	D053245	Tumor necrosis factor receptor 11b	TRANCE protein	CHEM	CHEM	1996	yes	1997
+D000074435	D000074437	PTS1 receptor	PTS2 receptor	CHEM	CHEM	1993	no	
+D019014	D053181	CD95 Antigens	caspase-8	CHEM	CHEM	1996	no	
+D006442	D049528	Hemoglobin, Glycosylated	Insulin, Prompt Zinc	CHEM	CHEM	2005	no	
+D011993	D018076	Recombinant Fusion Proteins	DNA, Complementary	CHEM	CHEM	1993	no	
+D000072483	D040281	Placental Growth Factor	Vascular Endothelial Growth Factor Receptor-1	CHEM	CHEM	1992	no	
+D010190	D017931	Pancreatic Neoplasm	Oligonucleotide Primers	DISO	CHEM	1993	maybe	
+D054398	D054422	Receptors, CCR4	Chemokine CCL22	CHEM	CHEM	1996	maybe	
+D000075202	D010879	Medical contraindication	Piperazines	DISO	CHEM	1998	no	
+D000071243	D004195	Zika Virus Infection	Animal Disease Models	DISO	DISO	2016	yes	2016

@@ -531,7 +531,8 @@ filterCondProb <- function(surgesDT, conditional.threshold=.7, onlyFirstSurge=FA
   d <- surgesDT
 
   if (onlyFirstSurge) {
-    d <- d[freq.joint>0,]
+# filtering freq.joint COMMENTED, because it causes removal of at least some cases which shouldn't. It's possible that trend is high and freq is 0.
+#    d <- d[freq.joint>0,]
     d[,first.surge:=(year==min(year)),by=key(d)]
     d<-d[first.surge==TRUE,]
   }
@@ -1017,6 +1018,25 @@ prepareCmpBaseline <- function(relsDT, static_data, filterCondi=.6, yearMin=1990
 
   print(paste('size relsDT:',nrow(relsDT)))
   print(paste('size static:',nrow(static_data)))
+
+  # filter range of years,  conditional proba and apply first year only
+  res <- filterCondProb(relsDT, filterCondi, TRUE, yearMin, yearMax)
+  print(paste('after filter condi + FIRSTsurge + years: ', nrow(res)))
+
+  # add groups and filter the 4 groups
+  res <- addRelationName(res, static_data)
+  res <- selectRelationsGroups(res)
+  print(paste('after filter groups: ', nrow(res)))
+  res
+  
+}
+
+
+# relsDT = surges OR baseline 'surges', i.e. full dynamic_joint?
+prepareCmpBaselineBAK <- function(relsDT, static_data, filterCondi=.6, yearMin=1990, yearMax=2020) {
+
+  print(paste('size relsDT:',nrow(relsDT)))
+  print(paste('size static:',nrow(static_data)))
   # filter static data for cond prob
   filtered_rels <- filterCondProb(static_data, filterCondi, FALSE)
   filtered_rels <- filtered_rels[, c1,c2]
@@ -1039,6 +1059,6 @@ prepareCmpBaseline <- function(relsDT, static_data, filterCondi=.6, yearMin=1990
   res <- selectRelationsGroups(res)
   print(paste('after filter groups: ', nrow(res)))
 #  print(nrow(res[c1=='D002800' & c2=='D008559',]))
-  res
+  res  
   
 }
