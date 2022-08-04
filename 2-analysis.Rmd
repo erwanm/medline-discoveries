@@ -233,7 +233,7 @@ ggsave('expl-trend-distrib.png',g,width=20,height=8,units = "cm")
 ```
 
 
-## Evaluation 
+# Evaluation
 
 ## Gold standard data
 
@@ -447,3 +447,47 @@ kable(head(filtered2[order(-trend),.(year,c1,relation,trend)],12))
 kable(head(filtered2[order(-trend),.(year,c1,relation,trend)],12))
 ```
 
+## Comparison against the baseline
+
+### Generating output relations to annotate
+
+The following code computes the full list of relations, similarly to the original time sliced evaluation method. This will be used as baseline.
+
+```{r eval.create.data.to.annotate1}
+relationsDT <- computeMovingAverage(dynamic_joint,dynamic_total, window=1)
+indivDT <- computeMovingAverage(dynamic_indiv,dynamic_total, window=1)
+allrels<-addDynamicAssociationToRelations(relationsDT,indivDT,measures = c('prob.joint'))
+allrels<-allrels[freq.joint>0,]
+```
+
+The code below applies the same preprocessing steps to both the SCP relations and the baseline relations:
+
+```{r eval.create.data.to.annotate2}
+set.seed(2022) 
+scp<-prepareCmpBaseline(surges.scp, static_data)
+scp <- scp[order(-trend),]
+baseline<-prepareCmpBaseline(allrels,static_data)
+```
+
+We now create the dataset to annotate, containing both some SCP relations and some baseline relations:
+
+- x1/y1 contain a random subset of 100 relations for both methods
+- x2/y2 contain the top 100 relations for both methods
+
+The 4 subsets are then concatenated and shuffled.
+
+```{r eval.create.data.to.annotate3}
+baseline<-head(baseline[order(-freq.joint),],nrow(scp))
+x1<-scp[sample(.N,100),.(c1,c2,term.c1,term.c2,group.c1,group.c2,year)]
+y1<-baseline[sample(.N,100), .(c1,c2,term.c1,term.c2,group.c1,group.c2,year)]
+x2<-head(scp[,.(c1,c2,term.c1,term.c2,group.c1,group.c2,year)],100)
+y2<-head(baseline[, .(c1,c2,term.c1,term.c2,group.c1,group.c2,year)],100)
+res <- rbind(x1,y1,x2,y2)
+res <- res[sample(.N),]
+fwrite(res,'to-annotate.tsv',sep='\t')
+```
+
+### Evaluation results
+
+```{r eval.results1}
+```

@@ -1062,3 +1062,24 @@ prepareCmpBaselineBAK <- function(relsDT, static_data, filterCondi=.6, yearMin=1
   res  
   
 }
+
+
+eval.baseline <- function( x1, y1, x2, y2, annotFile='data/annotated.tsv') {
+  annot <- fread(annotFile)
+  x1.a<-merge(annot,x1,by=c('c1','c2','year'))
+  x2.a<-merge(annot,x2,by=c('c1','c2','year'))
+  y1.a<-merge(annot,y1,by=c('c1','c2','year'))
+  y2.a<-merge(annot,y2,by=c('c1','c2','year'))
+  ldply(c('yes','no'), function(answer) {
+    data.frame(
+      method=c('scr', 'scr', 'baseline', 'baseline'),
+      subset=c('rnd', 'top', 'rnd', 'top'),
+      answer=rep(answer,4),
+      number=c(nrow(x1.a[discovery==answer,]),
+               nrow(x2.a[discovery==answer,]),
+               nrow(y1.a[discovery==answer,]),
+               nrow(y2.a[discovery==answer,]))
+    )
+  })
+  
+}
