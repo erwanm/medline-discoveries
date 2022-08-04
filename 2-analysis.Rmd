@@ -451,6 +451,8 @@ kable(head(filtered2[order(-trend),.(year,c1,relation,trend)],12))
 
 ### Generating output relations to annotate
 
+*Important: * the data used in the code was generated from the full input set of relations, i.e. with option `data.suffix` set to `'.min100'`.
+
 The following code computes the full list of relations, similarly to the original time sliced evaluation method. This will be used as baseline.
 
 ```{r eval.create.data.to.annotate1}
