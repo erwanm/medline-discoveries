@@ -490,4 +490,6 @@ fwrite(res,'to-annotate.tsv',sep='\t')
 ### Evaluation results
 
 ```{r eval.results1}
+res <- eval.baselinefunction( x1, y1, x2, y2, annotFile='data/annotated-relations.tsv') 
+kable(res)
 ```

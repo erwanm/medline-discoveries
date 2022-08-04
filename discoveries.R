@@ -1032,45 +1032,23 @@ prepareCmpBaseline <- function(relsDT, static_data, filterCondi=.6, yearMin=1990
 }
 
 
-# relsDT = surges OR baseline 'surges', i.e. full dynamic_joint?
-prepareCmpBaselineBAK <- function(relsDT, static_data, filterCondi=.6, yearMin=1990, yearMax=2020) {
 
-  print(paste('size relsDT:',nrow(relsDT)))
-  print(paste('size static:',nrow(static_data)))
-  # filter static data for cond prob
-  filtered_rels <- filterCondProb(static_data, filterCondi, FALSE)
-  filtered_rels <- filtered_rels[, c1,c2]
-  print(paste('after filtering on condi for static:',nrow(filtered_rels)))
-
-#  print(nrow(filtered_rels[c1=='D002800' & c2=='D008559',]))
-
-  # filter range of years,  conditional proba and apply first year only
-  res <- filterCondProb(relsDT, 1, TRUE, yearMin, yearMax)
-  print(paste('after filter FIRSTsurge + years: ', nrow(res)))
-#  print(nrow(res[c1=='D002800' & c2=='D008559',]))
-
-  # exclude rels which have been filtered out due to conditional
-  res <- merge(res, filtered_rels[,c1,c2])
-  print(paste('excluding condi from static: ', nrow(res)))
-#  print(nrow(res[c1=='D002800' & c2=='D008559',]))
-
-  # add groups and filter the 4 groups
-  res <- addRelationName(res, static_data)
-  res <- selectRelationsGroups(res)
-  print(paste('after filter groups: ', nrow(res)))
-#  print(nrow(res[c1=='D002800' & c2=='D008559',]))
-  res  
-  
-}
-
-
-eval.baseline <- function( x1, y1, x2, y2, annotFile='data/annotated.tsv') {
+eval.baseline <- function( x1, y1, x2, y2, annotFile='data/annotated-relations.tsv') {
   annot <- fread(annotFile)
   x1.a<-merge(annot,x1,by=c('c1','c2','year'))
+  x1.a$method <- rep('scr', nrow(x1.a))
+  x1.a$subset <- rep('rnd', nrow(x1.a))
   x2.a<-merge(annot,x2,by=c('c1','c2','year'))
+  x2.a$method <- rep('scr', nrow(x2.a))
+  x2.a$subset <- rep('top', nrow(x2.a))
   y1.a<-merge(annot,y1,by=c('c1','c2','year'))
+  y1.a$method <- rep('baseline', nrow(y1.a))
+  y1.a$subset <- rep('rnd', nrow(y1.a))
   y2.a<-merge(annot,y2,by=c('c1','c2','year'))
-  ldply(c('yes','no'), function(answer) {
+  y2.a$method <- rep('baseline', nrow(y2.a))
+  y2.a$subset <- rep('top', nrow(y2.a))
+  full <- rbind(x1.a, y1.a, x2.a, y2.a)
+  res<-ldply(c('yes','no','maybe'), function(answer) {
     data.frame(
       method=c('scr', 'scr', 'baseline', 'baseline'),
       subset=c('rnd', 'top', 'rnd', 'top'),
@@ -1081,5 +1059,19 @@ eval.baseline <- function( x1, y1, x2, y2, annotFile='data/annotated.tsv') {
                nrow(y2.a[discovery==answer,]))
     )
   })
-  
+  ldply(c('rnd','top'), function(subset0) {
+     print(subset0)
+     d<- res[res$subset==subset0 & res$answer !='maybe',]
+     preci <- ddply(d,'method', function(d0) {
+       data.frame(precision=d0[d0$answer=='yes','number'] / (d0[d0$answer=='yes','number'] + d0[d0$answer=='no','number']))
+     })
+     print(preci)
+     d0<-full[full$subset==subset0 & full$discovery!='maybe',]
+     tab<-table(d0$method, d0$discovery)
+     print(tab)
+     r<-chisq.test(tab)
+     print(paste('chisq.test p-val=',r$p.value))
+     r$p.value
+  })
+   res
 }
