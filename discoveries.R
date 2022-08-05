@@ -1060,7 +1060,6 @@ eval.baseline <- function( x1, y1, x2, y2, annotFile='data/annotated-relations.t
     )
   })
   ldply(c('rnd','top'), function(subset0) {
-     print(subset0)
      d<- res[res$subset==subset0 & res$answer !='maybe',]
      preci <- ddply(d,'method', function(d0) {
        data.frame(precision=d0[d0$answer=='yes','number'] / (d0[d0$answer=='yes','number'] + d0[d0$answer=='no','number']))
@@ -1072,6 +1071,6 @@ eval.baseline <- function( x1, y1, x2, y2, annotFile='data/annotated-relations.t
      r<-chisq.test(tab)
      print(paste('chisq.test p-val=',r$p.value))
      r$p.value
-  })
+   })
    res
 }

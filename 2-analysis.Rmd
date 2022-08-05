@@ -449,6 +449,19 @@ kable(head(filtered2[order(-trend),.(year,c1,relation,trend)],12))
 
 ## Comparison against the baseline
 
+This part requires the full Medline data (not only the ND subset):
+
+```{r init.full}
+data.suffix <- '.min100'
+
+surges.scp <- loadSurgesData(dir=dataPathOutput,suffix=data.suffix, measure='scp',indicator='diff',ma_window=5)
+
+dynamic_joint <- loadDynamicData(dir=dataPath,suffix=data.suffix, indivOrJoint = 'joint')
+dynamic_indiv <- loadDynamicData(dir=dataPath,suffix=data.suffix, indivOrJoint = 'indiv')
+dynamic_total <- loadDynamicTotalFile(dir=dataPath)
+static_data <- loadStaticData(dir=dataPathInputStatic,suffix=data.suffix)
+```
+
 ### Generating output relations to annotate
 
 *Important: * the data used in the code was generated from the full input set of relations, i.e. with option `data.suffix` set to `'.min100'`.
