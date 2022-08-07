@@ -104,6 +104,7 @@ computeAndSaveSurgesData <- function(dir='data/input', outputDir='data/output/',
         threshold <- calculateThresholdInflectionPoint(relations$trend)
         detectSurges(relations, globalThreshold=threshold)
         addNextNonZeroYear(relations)
+        relations <- calculateDiffYears(relations,dynamic_indiv,dynamic_joint)
         fwrite(relations[surge==TRUE,],f,sep='\t')
       }
     }

@@ -56,7 +56,7 @@ savePaperGraphs <- TRUE
 
 Notes:
 
-- If the option `shortVersion` is set to `FALSE`, the process requires at least 16GB RAM. 
+- If the option `shortVersion` is set to `FALSE`, the process requires at least 128GB RAM. 
 - Note: the option to use the full Medline data (`data.suffix <- '.min100'`) has not been tested with this Rmd document.
 
 ```{r initialization}
@@ -451,14 +451,14 @@ kable(head(filtered2[order(-trend),.(year,c1,relation,trend)],12))
 
 This part requires the full Medline data (not only the ND subset):
 
-```{r init.full}
+```{r init.full,eval=!shortVersion}
 data.suffix <- '.min100'
 
 surges.scp <- loadSurgesData(dir=dataPathOutput,suffix=data.suffix, measure='scp',indicator='diff',ma_window=5)
 
-dynamic_joint <- loadDynamicData(dir=dataPath,suffix=data.suffix, indivOrJoint = 'joint')
-dynamic_indiv <- loadDynamicData(dir=dataPath,suffix=data.suffix, indivOrJoint = 'indiv')
-dynamic_total <- loadDynamicTotalFile(dir=dataPath)
+dynamic_joint <- loadDynamicData(dir=dataPathInput,suffix=data.suffix, indivOrJoint = 'joint')
+dynamic_indiv <- loadDynamicData(dir=dataPathInput,suffix=data.suffix, indivOrJoint = 'indiv')
+dynamic_total <- loadDynamicTotalFile(dir=dataPathInput)
 static_data <- loadStaticData(dir=dataPathInputStatic,suffix=data.suffix)
 ```
 
@@ -468,7 +468,7 @@ static_data <- loadStaticData(dir=dataPathInputStatic,suffix=data.suffix)
 
 The following code computes the full list of relations, similarly to the original time sliced evaluation method. This will be used as baseline.
 
-```{r eval.create.data.to.annotate1}
+```{r eval.create.data.to.annotate1,eval=!shortVersion}
 relationsDT <- computeMovingAverage(dynamic_joint,dynamic_total, window=1)
 indivDT <- computeMovingAverage(dynamic_indiv,dynamic_total, window=1)
 allrels<-addDynamicAssociationToRelations(relationsDT,indivDT,measures = c('prob.joint'))
@@ -477,7 +477,7 @@ allrels<-allrels[freq.joint>0,]
 
 The code below applies the same preprocessing steps to both the SCP relations and the baseline relations:
 
-```{r eval.create.data.to.annotate2}
+```{r eval.create.data.to.annotate2,eval=!shortVersion}
 set.seed(2022) 
 scp<-prepareCmpBaseline(surges.scp, static_data)
 scp <- scp[order(-trend),]
@@ -491,7 +491,7 @@ We now create the dataset to annotate, containing both some SCP relations and so
 
 The 4 subsets are then concatenated and shuffled.
 
-```{r eval.create.data.to.annotate3}
+```{r eval.create.data.to.annotate3,eval=!shortVersion}
 baseline<-head(baseline[order(-freq.joint),],nrow(scp))
 x1<-scp[sample(.N,100),.(c1,c2,term.c1,term.c2,group.c1,group.c2,year)]
 y1<-baseline[sample(.N,100), .(c1,c2,term.c1,term.c2,group.c1,group.c2,year)]
@@ -504,7 +504,7 @@ fwrite(res,'to-annotate.tsv',sep='\t')
 
 ### Evaluation results
 
-```{r eval.results1}
-res <- eval.baselinefunction( x1, y1, x2, y2, annotFile='data/annotated-relations.tsv') 
+```{r eval.results1,eval=!shortVersion}
+res <- eval.baseline( x1, y1, x2, y2, annotFile='data/annotated-relations.tsv') 
 kable(res)
 ```

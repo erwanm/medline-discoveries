@@ -224,6 +224,17 @@ print(threshold)
 detectSurges(rel.measures, globalThreshold=threshold)
 ```
 
+## Calculate 'first year' information (optional)
+
+* Given a relation between two concepts c1 and c2 which appear for the ﬁrst time at years $y_1$ and $y_2$ respectively, the earliest possible
+year for a cooccurrence (and consequently for a surge) is $max(y_1 , y_2)$. This can be calculated and added to the data table (column `year.first.both`) as follows. The difference between the surge year and this year is added as column `duration`.
+* The year of the first cooccurrence between the two concepts can be added as well as column `year.first.joint`. The difference between the surge year and this year is added as column `duration.joint`.
+
+```{r add.first.year.info}
+rel.measures<-calculateDiffYears(rel.measures,dynamic_indiv,dynamic_joint)
+```
+
+* Note: if the last argument `dynamic_joint` is not provided, only `year.first.both` is added.
 
 ## Adjusting the surge year in the sliding window (optional)
 
