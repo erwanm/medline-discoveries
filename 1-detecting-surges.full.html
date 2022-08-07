@@ -500,8 +500,6 @@ multiple parameters and saving surges data”</a>.</em></p>
 <h2>Initialization</h2>
 <p>The code can be loaded in the R interpreter with:</p>
 <pre class="r"><code>source(&#39;discoveries.R&#39;)</code></pre>
-<pre><code>## data.table 1.12.6 using 1 threads (see ?getDTthreads).  Latest news: r-datatable.com</code></pre>
-<pre><code>## Need help? Try Stackoverflow: https://stackoverflow.com/tags/ggplot2.</code></pre>
 </div>
 <div id="loading-the-input-data" class="section level2">
 <h2>Loading the input data</h2>
@@ -612,6 +610,26 @@ print(threshold)</code></pre>
 <pre><code>## [1] 0.005755531</code></pre>
 <pre class="r"><code>detectSurges(rel.measures, globalThreshold=threshold)</code></pre>
 </div>
+<div id="calculate-first-year-information-optional" class="section level2">
+<h2>Calculate ‘first year’ information (optional)</h2>
+<ul>
+<li>Given a relation between two concepts c1 and c2 which appear for the
+ﬁrst time at years <span class="math inline">\(y_1\)</span> and <span class="math inline">\(y_2\)</span> respectively, the earliest possible
+year for a cooccurrence (and consequently for a surge) is <span class="math inline">\(max(y_1 , y_2)\)</span>. This can be calculated
+and added to the data table (column <code>year.first.both</code>) as
+follows. The difference between the surge year and this year is added as
+column <code>duration</code>.</li>
+<li>The year of the first cooccurrence between the two concepts can be
+added as well as column <code>year.first.joint</code>. The difference
+between the surge year and this year is added as column
+<code>duration.joint</code>.</li>
+</ul>
+<pre class="r"><code>rel.measures&lt;-calculateDiffYears(rel.measures,dynamic_indiv,dynamic_joint)</code></pre>
+<ul>
+<li>Note: if the last argument <code>dynamic_joint</code> is not
+provided, only <code>year.first.both</code> is added.</li>
+</ul>
+</div>
 <div id="adjusting-the-surge-year-in-the-sliding-window-optional" class="section level2">
 <h2>Adjusting the surge year in the sliding window (optional)</h2>
 <p>Using a moving average window (size higher than 1) can cause the
@@ -707,18 +725,20 @@ function encapsulates all the steps presented above.</p>
 ## [1] &quot;processing and saving to data/output/pmi.rate.1.min100.tsv&quot;
 ## [1] &quot;processing and saving to data/output/pmi.diff.1.min100.tsv&quot;
 ## 
-Written 34.2% of 4238571 rows in 2 secs using 1 thread. maxBuffUsed=23%. ETA 3 secs.      
-Written 51.5% of 4238571 rows in 3 secs using 1 thread. maxBuffUsed=23%. ETA 2 secs.      
-Written 68.8% of 4238571 rows in 4 secs using 1 thread. maxBuffUsed=23%. ETA 1 secs.      
-Written 86.1% of 4238571 rows in 5 secs using 1 thread. maxBuffUsed=23%. ETA 0 secs.      
+Written 26.8% of 4238571 rows in 2 secs using 1 thread. maxBuffUsed=22%. ETA 5 secs.      
+Written 43.5% of 4238571 rows in 3 secs using 1 thread. maxBuffUsed=22%. ETA 3 secs.      
+Written 60.0% of 4238571 rows in 4 secs using 1 thread. maxBuffUsed=22%. ETA 2 secs.      
+Written 76.5% of 4238571 rows in 5 secs using 1 thread. maxBuffUsed=22%. ETA 1 secs.      
+Written 93.1% of 4238571 rows in 6 secs using 1 thread. maxBuffUsed=22%. ETA 0 secs.      
                                                                                                                                      
 [1] &quot;processing and saving to data/output/npmi.rate.1.min100.tsv&quot;
 ## [1] &quot;processing and saving to data/output/npmi.diff.1.min100.tsv&quot;
 ## 
-Written 32.9% of 3936194 rows in 2 secs using 1 thread. maxBuffUsed=24%. ETA 4 secs.      
-Written 50.1% of 3936194 rows in 3 secs using 1 thread. maxBuffUsed=24%. ETA 2 secs.      
-Written 67.3% of 3936194 rows in 4 secs using 1 thread. maxBuffUsed=24%. ETA 1 secs.      
-Written 84.5% of 3936194 rows in 5 secs using 1 thread. maxBuffUsed=24%. ETA 0 secs.      
+Written 25.5% of 3936194 rows in 2 secs using 1 thread. maxBuffUsed=23%. ETA 5 secs.      
+Written 41.0% of 3936194 rows in 3 secs using 1 thread. maxBuffUsed=23%. ETA 4 secs.      
+Written 56.4% of 3936194 rows in 4 secs using 1 thread. maxBuffUsed=23%. ETA 3 secs.      
+Written 71.9% of 3936194 rows in 5 secs using 1 thread. maxBuffUsed=23%. ETA 1 secs.      
+Written 87.3% of 3936194 rows in 6 secs using 1 thread. maxBuffUsed=23%. ETA 0 secs.      
                                                                                                                                      
 [1] &quot;processing and saving to data/output/mi.rate.1.min100.tsv&quot;
 ## [1] &quot;processing and saving to data/output/mi.diff.1.min100.tsv&quot;
@@ -731,16 +751,17 @@ Written 84.5% of 3936194 rows in 5 secs using 1 thread. maxBuffUsed=24%. ETA 0 s
 ## [1] &quot;processing and saving to data/output/pmi.rate.3.min100.tsv&quot;
 ## [1] &quot;processing and saving to data/output/pmi.diff.3.min100.tsv&quot;
 ## 
-Written 38.1% of 3034589 rows in 2 secs using 1 thread. maxBuffUsed=27%. ETA 3 secs.      
-Written 59.2% of 3034589 rows in 3 secs using 1 thread. maxBuffUsed=27%. ETA 2 secs.      
-Written 80.6% of 3034589 rows in 4 secs using 1 thread. maxBuffUsed=27%. ETA 0 secs.      
+Written 34.8% of 3034589 rows in 2 secs using 1 thread. maxBuffUsed=25%. ETA 3 secs.      
+Written 55.2% of 3034589 rows in 3 secs using 1 thread. maxBuffUsed=25%. ETA 2 secs.      
+Written 75.6% of 3034589 rows in 4 secs using 1 thread. maxBuffUsed=25%. ETA 1 secs.      
+Written 96.0% of 3034589 rows in 5 secs using 1 thread. maxBuffUsed=25%. ETA 0 secs.      
                                                                                                                                      
 [1] &quot;processing and saving to data/output/npmi.rate.3.min100.tsv&quot;
 ## [1] &quot;processing and saving to data/output/npmi.diff.3.min100.tsv&quot;
 ## 
-Written 48.1% of 2397885 rows in 2 secs using 1 thread. maxBuffUsed=27%. ETA 2 secs.      
-Written 72.7% of 2397885 rows in 3 secs using 1 thread. maxBuffUsed=27%. ETA 1 secs.      
-Written 97.6% of 2397885 rows in 4 secs using 1 thread. maxBuffUsed=27%. ETA 0 secs.      
+Written 40.9% of 2397885 rows in 2 secs using 1 thread. maxBuffUsed=25%. ETA 2 secs.      
+Written 64.7% of 2397885 rows in 3 secs using 1 thread. maxBuffUsed=25%. ETA 1 secs.      
+Written 88.5% of 2397885 rows in 4 secs using 1 thread. maxBuffUsed=25%. ETA 0 secs.      
                                                                                                                                      
 [1] &quot;processing and saving to data/output/mi.rate.3.min100.tsv&quot;
 ## [1] &quot;processing and saving to data/output/mi.diff.3.min100.tsv&quot;
@@ -753,20 +774,24 @@ Written 97.6% of 2397885 rows in 4 secs using 1 thread. maxBuffUsed=27%. ETA 0 s
 ## [1] &quot;processing and saving to data/output/pmi.rate.5.min100.tsv&quot;
 ## [1] &quot;processing and saving to data/output/pmi.diff.5.min100.tsv&quot;
 ## 
-Written 45.7% of 2675973 rows in 2 secs using 1 thread. maxBuffUsed=24%. ETA 2 secs.      
-Written 68.9% of 2675973 rows in 3 secs using 1 thread. maxBuffUsed=24%. ETA 1 secs.      
-Written 92.1% of 2675973 rows in 4 secs using 1 thread. maxBuffUsed=24%. ETA 0 secs.      
+Written 43.6% of 2675973 rows in 2 secs using 1 thread. maxBuffUsed=23%. ETA 2 secs.      
+Written 65.9% of 2675973 rows in 3 secs using 1 thread. maxBuffUsed=23%. ETA 1 secs.      
+Written 88.1% of 2675973 rows in 4 secs using 1 thread. maxBuffUsed=23%. ETA 0 secs.      
                                                                                                                                      
 [1] &quot;processing and saving to data/output/npmi.rate.5.min100.tsv&quot;
 ## [1] &quot;processing and saving to data/output/npmi.diff.5.min100.tsv&quot;
-## [1] &quot;processing and saving to data/output/mi.rate.5.min100.tsv&quot;
+## 
+Written 49.5% of 2198035 rows in 2 secs using 1 thread. maxBuffUsed=23%. ETA 2 secs.      
+Written 74.7% of 2198035 rows in 3 secs using 1 thread. maxBuffUsed=23%. ETA 1 secs.      
+                                                                                                                                     
+[1] &quot;processing and saving to data/output/mi.rate.5.min100.tsv&quot;
 ## [1] &quot;processing and saving to data/output/mi.diff.5.min100.tsv&quot;
 ## [1] &quot;processing and saving to data/output/nmi.rate.5.min100.tsv&quot;
 ## [1] &quot;processing and saving to data/output/nmi.diff.5.min100.tsv&quot;
 ## [1] &quot;processing and saving to data/output/scp.rate.5.min100.tsv&quot;
 ## [1] &quot;processing and saving to data/output/scp.diff.5.min100.tsv&quot;</code></pre>
-<pre><code>##     user   system  elapsed 
-## 7915.257  719.773 8639.673</code></pre>
+<pre><code>##      user    system   elapsed 
+## 18913.966  1640.293 20559.964</code></pre>
 </div>
 </div>
 
