@@ -37,9 +37,11 @@ yearMax<-2020
 
 viewOptionsList <- c('First surge only' = 'firstYear',
                      'Adjust surge year' = 'adjustYear',
-                     'Sort by year (default: tend)' = 'sortByYear',
+                     'Sort by year (default: trend)' = 'sortByYear',
                      'Show MeSH descriptors' = 'showDescriptors',
                      'Show conditional probs' = 'showConditional',
+                     'Show first year both concepts appear' = 'showFirstOccBoth',
+                     'Show first year cooccurrence appears' = 'showFirstCoOcc',
                      'Show semantic groups' = 'showGroups'
                      )
 selected=defaultViewOptions <- c('firstYear','showDescriptors')
@@ -243,6 +245,12 @@ server <- function(input, output) {
       }
       if ('showConditional' %in% input$viewOptionsInput) {
         cols <- c(cols, c('prob.C1GivenC2','prob.C2GivenC1'))
+      }
+      if ('showFirstOccBoth' %in% input$viewOptionsInput) {
+        cols <- c(cols, 'year.first.both')
+      }
+      if ('showFirstCoOcc' %in% input$viewOptionsInput) {
+        cols <- c(cols, 'year.first.joint')
       }
       cols <- c(cols, 'trend')
       df[,..cols]
