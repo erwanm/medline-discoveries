@@ -330,18 +330,6 @@ ggplot(surges.scp,aes(as.factor(year),trend))+geom_boxplot()+ylim(c(0,.02))+them
 doublePlotAcrossTime(dynamic_joint, surges.scp,bins=68,fontsize=16)
 ```
 
-### Combination of multiple plots
-
-Right plot: duration between the year where the latest of the two concepts appears (individual occurrence) and surge year:
-
-```{r eval.years.threeplots}
-g<-threePlotsAboutYears(surges.scp, dynamic_indiv, dynamic_joint)
-g
-```
-
-```{r eval.years.save, echo=savePaperGraphs, eval=savePaperGraphs}
-ggsave('surges-by-year.pdf',g,width=20,height=12,unit='cm')
-```
 
 ### Duration until cooccurrences and until first surge
 
@@ -357,7 +345,7 @@ ggsave('durations.pdf',g,width=20,height=12,unit='cm')
 
 ```{r plot.combi2}
 g3 <- plotFirstOccIndivJoint(surges.scp)
-g <- doublePlotAcrossTime(joint, surges.scp,addThird = g3)
+g <- doublePlotAcrossTime(dynamic_joint, surges.scp,addThird = g3)
 ```
 
 ```{r combi2.save, echo=savePaperGraphs, eval=savePaperGraphs}
