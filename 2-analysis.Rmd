@@ -315,8 +315,7 @@ surges.scp[,first.surge:=(year==min(year)),by=key(surges.scp)]
 ```
 
 ```{r eval.years.joint}
-x<-calculateDiffYears(surges.scp,dynamic_indiv,dynamic_joint)
-ggplot(x,aes(duration.joint,fill=first.surge))+geom_histogram()
+ggplot(surges.scp,aes(duration.joint,fill=first.surge))+geom_histogram()
 ```
 
 ### Trend of surges by year
@@ -343,6 +342,28 @@ g
 ```{r eval.years.save, echo=savePaperGraphs, eval=savePaperGraphs}
 ggsave('surges-by-year.pdf',g,width=20,height=12,unit='cm')
 ```
+
+### Duration until cooccurrences and until first surge
+
+```{r plot.durations}
+plotFirstOccIndivJoint(surges.scp)
+```
+
+```{r durations.save, echo=savePaperGraphs, eval=savePaperGraphs}
+ggsave('durations.pdf',g,width=20,height=12,unit='cm')
+```
+
+### Combination 2
+
+```{r plot.combi2}
+g3 <- plotFirstOccIndivJoint(surges.scp)
+g <- doublePlotAcrossTime(joint, surges.scp,addThird = g3)
+```
+
+```{r combi2.save, echo=savePaperGraphs, eval=savePaperGraphs}
+ggsave('surges-by-year2.pdf',g,width=20,height=20,unit='cm')
+```
+
 
 ## Relation between surges and frequency
 

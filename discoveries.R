@@ -781,7 +781,7 @@ heatMapCommonMatrix <- function(m, varname='overlap',asPercentage=TRUE) {
 #}
 
 
-doublePlotAcrossTime <- function(dynamicJointDT, surgesDT,bins=71,fontsize=14,marginAdjustMm=2,withLegend=TRUE) {
+doublePlotAcrossTime <- function(dynamicJointDT, surgesDT,bins=71,fontsize=14,marginAdjustMm=2,withLegend=TRUE, addThird=NULL) {
   firstcooc <- dynamicJointDT[,.SD[year==min(year),],by=key(dynamicJointDT)]
   plot.cooc <- ggplot(firstcooc,aes(year))+geom_histogram(bins=bins)+theme(text=element_text(size=fontsize),plot.margin = margin(0, marginAdjustMm, 0, 0, "mm"))+xlim(c(1950,2020))+xlab(NULL)+ylab(NULL)+ggtitle('First cooccurrences')
   surgesDT[,first.surge:=(year==min(year)),by=key(surgesDT)]
@@ -791,11 +791,22 @@ doublePlotAcrossTime <- function(dynamicJointDT, surgesDT,bins=71,fontsize=14,ma
   } else {
     plot.surges <- plot.surges +theme(text=element_text(size=fontsize),legend.position = 'none',plot.margin = margin(0, 0, 0, marginAdjustMm, "mm"))
   }
+  if (is.null(addThird)) {
   plot_grid(plot.cooc,
             plot.surges,
             labels = NULL,
             label_x = 0.2,
             nrow = 2)
+  } else {
+    plot_grid(plot.cooc,
+              plot.surges,
+              addThird,
+              labels = NULL,
+#              label_x = 0.2,
+              nrow = 3)
+    
+  }
+    
 }
 
 # calculates also for joint if not null
@@ -1075,3 +1086,17 @@ eval.baseline <- function( x1, y1, x2, y2, annotFile='data/annotated-relations.t
    })
    res
 }
+
+# d <- loadSurgesData(....)
+# d[,first.surge:=(year==min(year)),by=key(d)]
+#
+plotFirstOccIndivJoint <- function(d,fontsize=14,marginLeftAdjustMm=-5) {
+  d0 <- d[first.surge==TRUE,]
+  d0[,from.both.exist.to.cooc := year.first.joint-year.first.both ]
+  d0[,from.both.exist.to.surge := year-year.first.both ]
+  d0[,duration:=NULL]
+  x<-melt(d0[first.surge==TRUE,],measure.vars = c('from.both.exist.to.cooc','from.both.exist.to.surge'),variable.name = 'duration',value.name = 'years')
+  ggplot(x,aes(years,fill=duration))+geom_histogram(position='identity',alpha=.55)+theme(text=element_text(size=fontsize),legend.position = c(.75, .75),plot.margin = margin(0, 0, 0, marginLeftAdjustMm, "mm"))+xlab('')+ylab('')+ggtitle('Duration since both concepts appear')
+  #ggplot(d0,aes(from.both.exist.to.cooc,from.cooc.to.first.surge))+geom_point(alpha=.5 )
+  #ggplot(x,aes(duration))+geom_histogram()+facet_grid(duration.type~.)
+  }
