@@ -335,18 +335,20 @@ doublePlotAcrossTime(dynamic_joint, surges.scp,bins=68,fontsize=16)
 
 ```{r plot.durations}
 first.surges.scp <- surges.scp[first.surge==TRUE,]
+nrow(first.surges.scp)
 g3 <- plotFirstOccIndivJoint(first.surges.scp)
 g3
 ```
 
 ```{r durations.save, echo=savePaperGraphs, eval=savePaperGraphs}
-ggsave('durations.pdf',g,width=20,height=12,unit='cm')
+ggsave('durations.pdf',g3,width=20,height=12,unit='cm')
 ```
 
 ### Combination 2
 
 ```{r plot.combi2}
 g <- doublePlotAcrossTime(dynamic_joint, surges.scp,addThird = g3)
+g
 ```
 
 ```{r combi2.save, echo=savePaperGraphs, eval=savePaperGraphs}

@@ -1090,13 +1090,13 @@ eval.baseline <- function( x1, y1, x2, y2, annotFile='data/annotated-relations.t
 # d <- loadSurgesData(....)
 # d[,first.surge:=(year==min(year)),by=key(d)]
 #
-plotFirstOccIndivJoint <- function(d,fontsize=14,marginLeftAdjustMm=-5) {
+plotFirstOccIndivJoint <- function(d,fontsize=14,marginLeftAdjustMm=-5, binwidth=1) {
   d0 <- d[first.surge==TRUE,]
   d0[,from.both.exist.to.cooc := year.first.joint-year.first.both ]
   d0[,from.both.exist.to.surge := year-year.first.both ]
   d0[,duration:=NULL]
   x<-melt(d0[first.surge==TRUE,],measure.vars = c('from.both.exist.to.cooc','from.both.exist.to.surge'),variable.name = 'duration',value.name = 'years')
-  ggplot(x,aes(years,fill=duration))+geom_histogram(position='identity',alpha=.55)+theme(text=element_text(size=fontsize),legend.position = c(.75, .75),plot.margin = margin(0, 0, 0, marginLeftAdjustMm, "mm"))+xlab('')+ylab('')+ggtitle('Duration since both concepts appear')
+  ggplot(x,aes(years,fill=duration))+geom_histogram(binwidth=binwidth, position='identity',alpha=.55)+theme(text=element_text(size=fontsize),legend.position = c(.75, .75),plot.margin = margin(0, 0, 0, marginLeftAdjustMm, "mm"))+xlab('')+ylab('')+ggtitle('Duration since both concepts appear')
   #ggplot(d0,aes(from.both.exist.to.cooc,from.cooc.to.first.surge))+geom_point(alpha=.5 )
   #ggplot(x,aes(duration))+geom_histogram()+facet_grid(duration.type~.)
   }
