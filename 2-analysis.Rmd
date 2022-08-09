@@ -334,7 +334,9 @@ doublePlotAcrossTime(dynamic_joint, surges.scp,bins=68,fontsize=16)
 ### Duration until cooccurrences and until first surge
 
 ```{r plot.durations}
-plotFirstOccIndivJoint(surges.scp)
+first.surges.scp <- surges.scp[first.surge==TRUE,]
+g3 <- plotFirstOccIndivJoint(first.surges.scp)
+g3
 ```
 
 ```{r durations.save, echo=savePaperGraphs, eval=savePaperGraphs}
@@ -344,7 +346,6 @@ ggsave('durations.pdf',g,width=20,height=12,unit='cm')
 ### Combination 2
 
 ```{r plot.combi2}
-g3 <- plotFirstOccIndivJoint(surges.scp)
 g <- doublePlotAcrossTime(dynamic_joint, surges.scp,addThird = g3)
 ```
 
