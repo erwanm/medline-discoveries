@@ -340,6 +340,27 @@ g3 <- plotFirstOccIndivJoint(first.surges.scp)
 g3
 ```
 
+Statistics related to time:
+
+```
+print('average duration between concepts exist and first surge:')
+first.surges.scp[,mean(year-year.first.both)]
+print('average duration between concepts exist and first cooccurrence:')
+first.surges.scp[,mean(year.first.joint-year.first.both)]
+print('average duration between first cooccurrence and first surge:')
+first.surges.scp[,mean(year-year.first.joint)]
+print('distribution (quantiles) for time before cooccurrence:')
+quantile(first.surges.scp[,year.first.joint-year.first.both],probs=seq(0,1,.1))
+print('distribution (quantiles) for time before first surge:')
+quantile(first.surges.scp[,year-year.first.both],probs=seq(0,1,.1))
+print('proportion of surges happening the first year the concepts both exist:')
+nrow(first.surges.scp[year <= year.first.both,])/nrow(first.surges.scp)
+print('proportion of cooccurrences happening the first year the concepts both exist:')
+nrow(first.surges.scp[year.first.joint == year.first.both,])/nrow(first.surges.scp)
+print('proportion of cooccurrences happening at the same time as first cooccurrence:')
+nrow(first.surges.scp[year == year.first.joint,])/nrow(first.surges.scp)
+```
+
 ```{r durations.save, echo=savePaperGraphs, eval=savePaperGraphs}
 ggsave('durations.pdf',g3,width=20,height=12,unit='cm')
 ```
