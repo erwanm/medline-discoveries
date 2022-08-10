@@ -342,7 +342,7 @@ g3
 
 Statistics related to time:
 
-```
+```{r stats.time}
 print('average duration between concepts exist and first surge:')
 first.surges.scp[,mean(year-year.first.both)]
 print('average duration between concepts exist and first cooccurrence:')
